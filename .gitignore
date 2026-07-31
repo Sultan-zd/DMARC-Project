@@ -1,0 +1,52 @@
+# ==================== Java / Spring Boot ====================
+backend/target/
+backend/data/
+*.jar
+*.war
+*.class
+*.log
+
+# Maven wrapper (optional - some projects include it)
+# backend/.mvn/wrapper/maven-wrapper.jar
+
+# ==================== Node / React ====================
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+*.local
+
+# ==================== IDE ====================
+.idea/
+.vscode/
+*.iml
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# ==================== Environment / Secrets ====================
+.env
+.env.local
+.env.*.local
+*.env
+
+# ==================== Legacy Backend (Python) ====================
+backend-python-legacy/
+
+# ==================== OS Files ====================
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==================== Database Files ====================
+*.db
+*.mv.db
+*.trace.db
+
+# ==================== PDF / Large Binary ====================
+*.pdf

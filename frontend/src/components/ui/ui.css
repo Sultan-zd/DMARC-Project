@@ -1,0 +1,343 @@
+/* ui.css — Professional Light Theme */
+
+/* ─── Stat Card ─── */
+.stat-card {
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-primary);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.stat-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.stat-card-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0.5rem 0 0.25rem;
+}
+
+.stat-card-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.stat-card-trend {
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+.stat-card-trend.up { color: var(--success); }
+.stat-card-trend.down { color: var(--danger); }
+
+/* Color Variants for StatCard */
+.stat-card.success .stat-card-icon { background: var(--success-bg); color: var(--success); }
+.stat-card.danger .stat-card-icon { background: var(--danger-bg); color: var(--danger); }
+.stat-card.warning .stat-card-icon { background: var(--warning-bg); color: var(--warning); }
+.stat-card.info .stat-card-icon { background: var(--info-bg); color: var(--info); }
+.stat-card.accent .stat-card-icon { background: var(--accent-bg); color: var(--accent-primary); }
+
+/* ─── Status Badge ─── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-badge .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.status-badge.success { background: var(--success-bg); color: var(--success); }
+.status-badge.success .dot { background: var(--success); }
+
+.status-badge.danger { background: var(--danger-bg); color: var(--danger); }
+.status-badge.danger .dot { background: var(--danger); }
+
+.status-badge.warning { background: var(--warning-bg); color: var(--warning); }
+.status-badge.warning .dot { background: var(--warning); }
+
+.status-badge.info { background: var(--info-bg); color: var(--info); }
+.status-badge.info .dot { background: var(--info); }
+
+.status-badge.muted { background: rgba(148, 163, 184, 0.1); color: var(--text-muted); }
+.status-badge.muted .dot { background: var(--text-muted); }
+
+/* ─── Loading Spinner ─── */
+.loading-spinner {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: var(--bg-primary);
+  z-index: 9999;
+}
+
+.loading-spinner .spinner-icon {
+  color: var(--accent-primary);
+  animation: spin 1.5s linear infinite;
+}
+
+.loading-spinner p {
+  margin-top: 1rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ─── Score Gauge ─── */
+.score-gauge {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-gauge-circle {
+  transition: stroke-dashoffset 1.5s ease-out;
+}
+
+.score-gauge-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-gauge-grade {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.score-gauge-value {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+/* ─── DNS Record Card ─── */
+.dns-record-card {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-primary);
+  border-left-width: 4px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.dns-record-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.dns-record-card.success { border-left-color: var(--success); }
+.dns-record-card.danger { border-left-color: var(--danger); }
+.dns-record-card.warning { border-left-color: var(--warning); }
+.dns-record-card.muted { border-left-color: var(--text-muted); }
+
+.dns-record-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+}
+
+.dns-record-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dns-record-title h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.dns-record-status.success { color: var(--success); }
+.dns-record-status.danger { color: var(--danger); }
+.dns-record-status.warning { color: var(--warning); }
+.dns-record-status.muted { color: var(--text-muted); }
+
+.dns-record-toggle {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dns-record-toggle:hover {
+  color: var(--text-primary);
+}
+
+.dns-record-summary {
+  padding: 0 1.25rem 1rem;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.dns-record-details {
+  padding: 0 1.25rem 1.25rem;
+  border-top: 1px solid var(--border-primary);
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+}
+
+.dns-record-details h4 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.dns-record-raw code {
+  display: block;
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  word-break: break-all;
+  white-space: pre-wrap;
+  margin-bottom: 1rem;
+}
+
+.dns-parsed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.dns-parsed-item {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-primary);
+}
+
+.dns-parsed-key {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.dns-parsed-value {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  word-break: break-all;
+}
+
+/* ─── Skeleton Loader ─── */
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #e2e8f0 25%,
+    #f1f5f9 37%,
+    #e2e8f0 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.skeleton-line { height: 16px; }
+.skeleton-line.line-1 { width: 85%; }
+.skeleton-line.line-2 { width: 100%; }
+.skeleton-line.line-3 { width: 60%; }
+
+.skeleton-card { padding: 1.5rem; }
+
+.skeleton-title {
+  height: 24px;
+  width: 40%;
+  margin-bottom: 1.5rem;
+}
+
+.skeleton-text {
+  height: 12px;
+  margin-bottom: 0.75rem;
+}
+
+.skeleton-text.short { width: 70%; }
+
+.skeleton-table {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.skeleton-header {
+  height: 40px;
+  border-radius: var(--radius-md);
+}
+
+.skeleton-row { height: 30px; }
+
+/* ─── Animated Counter ─── */
+.animated-counter {
+  font-variant-numeric: tabular-nums;
+  display: inline-block;
+}
