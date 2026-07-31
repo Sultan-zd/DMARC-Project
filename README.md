@@ -67,7 +67,7 @@ A comprehensive web dashboard for monitoring and analyzing **DMARC** (Domain-bas
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/dmarc-web-dashboard.git
+git clone https://github.com/Sultan-zd/dmarc-web-dashboard.git
 cd dmarc-web-dashboard
 ```
 
