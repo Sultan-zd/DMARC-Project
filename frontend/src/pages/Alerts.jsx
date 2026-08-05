@@ -2,10 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Info, CheckCircle, Check } from 'lucide-react';
 import * as api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import usePageTitle from '../hooks/usePageTitle';
 import './Alerts.css';
 
 const Alerts = () => {
+  usePageTitle('Security Alerts');
   const { token } = useAuth();
+  const { showToast } = useToast();
   const [alerts, setAlerts] = useState([]);
   const [stats, setStats] = useState({ total: 0, unread: 0, critical: 0, high: 0 });
   const [loading, setLoading] = useState(true);
@@ -27,6 +31,7 @@ const Alerts = () => {
       setLoading(false);
     } catch (err) {
       console.error("Failed to load alerts", err);
+      showToast('Failed to load alerts', 'error');
       setAlerts([]);
       setLoading(false);
     }
@@ -39,9 +44,11 @@ const Alerts = () => {
   const handleMarkAllRead = async () => {
     try {
       await api.markAllAlertsRead(token);
+      showToast('All alerts marked as read', 'success');
       fetchAlerts();
     } catch (err) {
       console.error("Error marking all read", err);
+      showToast('Failed to mark all as read', 'error');
     }
   };
 
@@ -52,6 +59,7 @@ const Alerts = () => {
       setStats({ ...stats, unread: Math.max(0, stats.unread - 1) });
     } catch (err) {
       console.error("Error marking alert read", err);
+      showToast('Failed to mark alert as read', 'error');
     }
   };
 
@@ -78,7 +86,14 @@ const Alerts = () => {
       <div className="alerts-header">
         <div>
           <h1>Security Alerts</h1>
-          <p className="subtitle">Monitor DMARC security and deliverability incidents</p>
+          <p className="subtitle">Findings that need someone to look at them</p>
+          <p className="page-header-note">
+            <Info size={14} aria-hidden="true" />
+            <span>
+              Raised automatically when an authentication failure rate or sending volume
+              crosses a threshold, and by domain analyses you run while signed in.
+            </span>
+          </p>
         </div>
         <button className="btn btn-primary" onClick={handleMarkAllRead}>
           <Check size={18} /> Mark all as read

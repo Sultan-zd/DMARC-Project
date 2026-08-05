@@ -1,64 +1,96 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Header from '../components/layout/Header';
 import ScoreGauge from '../components/ui/ScoreGauge';
 import DnsRecordCard from '../components/ui/DnsRecordCard';
 import SkeletonLoader from '../components/ui/SkeletonLoader';
+import AnalysisPosture from '../components/analysis/AnalysisPosture';
+import AnalysisHistory from '../components/analysis/AnalysisHistory';
+import ScoringModelPanel from '../components/analysis/ScoringModelPanel';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { useDomain } from '../context/DomainContext';
+import { canEdit } from '../utils/roles';
+import usePageTitle from '../hooks/usePageTitle';
 import * as api from '../services/api';
-import { Search, Shield, Globe, RefreshCw, History, ArrowRight, Clock, AlertTriangle, Info, CheckCircle, BookOpen, Printer } from 'lucide-react';
+import {
+  Search, Globe, RefreshCw, AlertTriangle, Info, CheckCircle, Printer, Clock, Lock,
+} from 'lucide-react';
 import './DomainAnalysis.css';
 
+/** Most urgent first — the order the work should be done in. */
+const SEVERITY_ORDER = ['critical', 'warning', 'info', 'success'];
+
+const SEVERITY_META = {
+  critical: { label: 'Must fix', icon: AlertTriangle },
+  warning: { label: 'Should fix', icon: AlertTriangle },
+  info: { label: 'Worth knowing', icon: Info },
+  success: { label: 'Already correct', icon: CheckCircle },
+};
+
 const DomainAnalysis = () => {
-  const { token } = useAuth();
+  usePageTitle('Domain Analysis');
+  const { token, user } = useAuth();
+  const { showToast } = useToast();
+  const { setSelectedDomain } = useDomain();
+
   const [domain, setDomain] = useState('');
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [history, setHistory] = useState([]);
-  const [showHistory, setShowHistory] = useState(false);
-  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(true);
 
-  useEffect(() => {
-    loadHistory();
-  }, [token]);
+  const mayAnalyse = canEdit(user);
 
-  const loadHistory = async () => {
+  const loadHistory = useCallback(async () => {
     try {
       setLoadingHistory(true);
-      const res = await api.getAnalysisHistory(token);
-      if (res && res.items) {
-        setHistory(res.items);
-      }
-    } catch (err) {
-      console.error("Error loading history:", err);
+      const res = await api.getAnalysisHistory(token, { page_size: 50 });
+      setHistory(res?.items ?? []);
+    } catch {
+      showToast('Failed to load analysis history', 'error');
     } finally {
       setLoadingHistory(false);
     }
-  };
+  }, [token, showToast]);
 
-  const handleAnalyze = async (e) => {
-    e.preventDefault();
-    if (!domain || !domain.includes('.')) {
-      setError('Please enter a valid domain name (e.g. example.com).');
+  useEffect(() => { if (token) loadHistory(); }, [token, loadHistory]);
+
+  /** Domains already looked at, newest first — one click to re-check. */
+  const recentDomains = useMemo(() => {
+    const seen = [];
+    history.forEach((item) => {
+      if (!seen.includes(item.domain)) seen.push(item.domain);
+    });
+    return seen.slice(0, 6);
+  }, [history]);
+
+  const runAnalysis = async (target) => {
+    const value = target.toLowerCase().trim();
+    if (!value.includes('.')) {
+      setError('Enter a full domain name, such as example.com.');
       return;
     }
 
     setLoading(true);
     setError('');
     setResults(null);
-
     try {
-      const data = await api.analyzeDomain(token, domain.toLowerCase().trim());
+      const data = await api.analyzeDomain(token, value);
       setResults(data);
+      setDomain(value);
+      setSelectedDomain(value);
+      showToast(`${value} scored ${data.score?.score}/100`, 'success');
       loadHistory();
     } catch (err) {
-      setError(err.message || 'An error occurred while analyzing the domain.');
+      setError(err.message || 'The analysis could not be completed.');
+      showToast('Analysis failed', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadPastAnalysis = async (id) => {
+  const openPastAnalysis = async (id) => {
     setLoading(true);
     setError('');
     setResults(null);
@@ -68,47 +100,88 @@ const DomainAnalysis = () => {
       setDomain(data.domain);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
-      setError(err.message || 'Error loading analysis.');
+      setError(err.message || 'That analysis could not be opened.');
     } finally {
       setLoading(false);
     }
   };
 
+  // Grouped so the page leads with what is broken rather than with what passed.
+  const groupedRecommendations = useMemo(() => {
+    const groups = new Map();
+    (results?.recommendations ?? []).forEach((rec) => {
+      if (!groups.has(rec.severity)) groups.set(rec.severity, []);
+      groups.get(rec.severity).push(rec);
+    });
+    return SEVERITY_ORDER
+      .filter((severity) => groups.has(severity))
+      .map((severity) => [severity, groups.get(severity)]);
+  }, [results]);
+
   return (
     <div className="analysis-page">
       <div className="app-header">
-        <Header title="Email Security Analysis" subtitle="Verify DMARC/SPF/DKIM configuration for any domain" />
+        <Header
+          title="Email Security Analysis"
+          subtitle="How a domain’s DNS is configured right now"
+          note="A live DNS check, independent of the Dashboard. A domain can score well here and still show failures there — that means the configuration is sound but a legitimate sender is missing from it."
+        />
       </div>
 
+      <AnalysisPosture history={history} />
+
       <div className="analysis-search glass-card">
-        <h2>Analyze a domain</h2>
-        <form onSubmit={handleAnalyze} className="search-form">
+        <div className="search-heading">
+          <h2>Analyse a domain</h2>
+          <p>
+            Reads DMARC, SPF, DKIM, MX and BIMI straight from public DNS. Nothing is
+            sent to the domain, and no mailbox access is needed.
+          </p>
+        </div>
+
+        <form
+          onSubmit={(e) => { e.preventDefault(); runAnalysis(domain); }}
+          className="search-form"
+        >
           <div className="search-input-wrapper">
             <Globe className="search-input-icon" size={20} />
             <input
               type="text"
               className="search-input"
-              placeholder="Enter a domain name (e.g. google.com)"
+              placeholder="example.com"
               value={domain}
               onChange={(e) => setDomain(e.target.value)}
-              disabled={loading}
+              disabled={loading || !mayAnalyse}
+              aria-label="Domain to analyse"
             />
           </div>
-          <button type="submit" className="search-btn" disabled={loading}>
-            {loading ? (
-              <>
-                <RefreshCw size={20} className="spin" />
-                Analyzing...
-              </>
-            ) : (
-              <>
-                <Search size={20} />
-                Analyze
-              </>
-            )}
+          <button type="submit" className="search-btn" disabled={loading || !mayAnalyse}>
+            {loading
+              ? <><RefreshCw size={20} className="spin" /> Analysing…</>
+              : <><Search size={20} /> Analyse</>}
           </button>
         </form>
-        {error && <div className="error-message fade-in" style={{ marginTop: '1rem', color: 'var(--danger)' }}>{error}</div>}
+
+        {!mayAnalyse && (
+          <p className="search-locked">
+            <Lock size={14} />
+            Your account can read analyses but not run them. An administrator or
+            analyst can run a new check.
+          </p>
+        )}
+
+        {recentDomains.length > 0 && mayAnalyse && (
+          <div className="recent-domains">
+            <span className="recent-label"><Clock size={13} /> Recently checked</span>
+            {recentDomains.map((d) => (
+              <button key={d} className="recent-chip" onClick={() => runAnalysis(d)} disabled={loading}>
+                {d}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {error && <div className="error-message fade-in analysis-error">{error}</div>}
       </div>
 
       {loading && !results && (
@@ -124,230 +197,93 @@ const DomainAnalysis = () => {
 
       {results && (
         <div className="results-container fade-in">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <h2 style={{ margin: 0 }}>Analysis Results: {results.domain}</h2>
-            <button 
-              className="search-btn btn-print" 
-              style={{ minWidth: 'auto', padding: '0.75rem 1.5rem', gap: '0.5rem', background: 'var(--text-primary)' }}
-              onClick={() => window.print()}
-            >
-              <Printer size={18} />
-              Export PDF
+          <div className="results-bar">
+            <div>
+              <h2>{results.domain}</h2>
+              <p>
+                Checked {new Date(results.analyzed_at ?? Date.now()).toLocaleString('en-GB', {
+                  day: '2-digit', month: 'short', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit',
+                })}
+                {results.analyzed_by ? ` by ${results.analyzed_by}` : ''}
+              </p>
+            </div>
+            <button className="btn-print" onClick={() => window.print()}>
+              <Printer size={18} /> Export PDF
             </button>
           </div>
 
           <div className="results-grid">
             <div className="score-section">
-              <h3 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Security Score</h3>
+              <h3>Security score</h3>
               <ScoreGauge
                 score={results.score?.score || 0}
                 grade={results.score?.grade || 'N/A'}
                 color={results.score?.color || 'blue'}
                 size={220}
               />
-              <p style={{ marginTop: '1.5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                Based on the configuration of email security DNS records.
+              {results.score?.breakdown && (
+                <ul className="score-breakdown">
+                  {Object.entries(results.score.breakdown).map(([control, earned]) => (
+                    <li key={control}>
+                      <span className="breakdown-name">{control}</span>
+                      <span className="breakdown-points">{earned}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="score-note">
+                Points earned out of those that applied. Controls that cannot be read
+                are left out of both sides.
               </p>
             </div>
 
             <div className="records-section">
               {results.records?.map((record, index) => (
-                <div className={`fade-in stagger-${(index % 6) + 1}`} key={index}>
+                <div className={`fade-in stagger-${(index % 6) + 1}`} key={record.type ?? index}>
                   <DnsRecordCard {...record} />
                 </div>
               ))}
             </div>
           </div>
 
-          {results.recommendations && results.recommendations.length > 0 && (
+          {groupedRecommendations.length > 0 && (
             <div className="recommendations-section fade-in">
-              <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Shield size={20} color="var(--accent-primary)" />
-                Recommendations
-              </h3>
-              <div className="recommendations-list">
-                {results.recommendations.map((rec, index) => (
-                  <div key={index} className={`recommendation-item ${rec.severity}`}>
-                    <div className="rec-icon">
-                      {rec.severity === 'critical' && <AlertTriangle size={20} color="var(--danger)" />}
-                      {rec.severity === 'warning' && <AlertTriangle size={20} color="var(--warning)" />}
-                      {rec.severity === 'info' && <Info size={20} color="var(--info)" />}
-                      {rec.severity === 'success' && <CheckCircle size={20} color="var(--success)" />}
+              <h3>What to do next</h3>
+              {groupedRecommendations.map(([severity, items]) => {
+                const meta = SEVERITY_META[severity] ?? SEVERITY_META.info;
+                const Icon = meta.icon;
+                return (
+                  <div key={severity} className={`rec-group ${severity}`}>
+                    <div className="rec-group-head">
+                      <Icon size={16} />
+                      <h4>{meta.label}</h4>
+                      <span className="rec-group-count">{items.length}</span>
                     </div>
-                    <div className="rec-content">
-                      <p className="rec-message">{rec.message}</p>
-                      {rec.action && <p className="rec-action"><strong>Action:</strong> {rec.action}</p>}
+                    <div className="recommendations-list">
+                      {items.map((rec, index) => (
+                        <div key={index} className={`recommendation-item ${severity}`}>
+                          <div className="rec-content">
+                            {rec.category && <span className="rec-category">{rec.category}</span>}
+                            <p className="rec-message">{rec.message}</p>
+                            {rec.action && (
+                              <p className="rec-action"><strong>Action:</strong> {rec.action}</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
           )}
         </div>
       )}
 
-      {/* Educational Section - How It Works */}
-      <div className="educational-section fade-in">
-        <div className="edu-header">
-          <BookOpen size={28} color="var(--accent-primary)" />
-          <h2>How This Analysis Works</h2>
-        </div>
-        
-        <div className="edu-grid">
-          <div className="edu-card">
-            <h3>1. The DNS Lookup Process</h3>
-            <p>
-              When you submit a domain, our backend engine performs real-time live DNS lookups using <strong>Google's public DNS servers (8.8.8.8)</strong> to ensure we see exactly what the rest of the internet sees.
-            </p>
-            <p>
-              We don't use cached data. We actively query the domain's nameservers for specific <code>TXT</code> and <code>MX</code> records that are fundamental to modern email authentication.
-            </p>
-          </div>
+      <ScoringModelPanel token={token} />
 
-          <div className="edu-card">
-            <h3>2. DMARC Check (Domain-based Message Authentication)</h3>
-            <p>
-              We query the <code>TXT</code> record at <span className="edu-highlight">_dmarc.yourdomain.com</span>.
-            </p>
-            <div className="edu-code-block">
-              v=DMARC1; p=reject; rua=mailto:dmarc@yourdomain.com;
-            </div>
-            <p>
-              <strong>Scoring Impact:</strong><br/>
-              • <code>p=reject</code>: Highest security, blocks all spoofed emails (+40 pts)<br/>
-              • <code>p=quarantine</code>: Sends spoofed emails to spam folder (+30 pts)<br/>
-              • <code>p=none</code>: Monitoring only mode, offers no active protection (+15 pts)<br/>
-              • Missing DMARC: Leaves the domain entirely vulnerable to spoofing (0 pts)
-            </p>
-          </div>
-
-          <div className="edu-card">
-            <h3>3. SPF Check (Sender Policy Framework)</h3>
-            <p>
-              We query the root domain for a <code>TXT</code> record starting with <code>v=spf1</code>. This record acts as a public whitelist of IP addresses authorized to send emails on your behalf.
-            </p>
-            <div className="edu-code-block">
-              v=spf1 ip4:192.168.0.1 include:_spf.google.com ~all
-            </div>
-            <p>
-              <strong>Scoring Impact:</strong><br/>
-              • <code>-all</code> (Hard Fail): Strict enforcement (+30 pts)<br/>
-              • <code>~all</code> (Soft Fail): Standard enforcement (+20 pts)<br/>
-              • <code>?all</code> (Neutral) or <code>+all</code> (Allow All): Highly insecure (0 pts)
-            </p>
-          </div>
-
-          <div className="edu-card">
-            <h3>4. DKIM Check (DomainKeys Identified Mail)</h3>
-            <p>
-              DKIM uses cryptographic signatures to ensure emails aren't tampered with in transit. We test common selectors (e.g., <code>google</code>, <code>default</code>, <code>selector1</code>).
-            </p>
-            <p>
-              <strong>Key Size Detection:</strong> We extract and decode the public key to determine its cryptographic strength. Keys smaller than 2048 bits (like 1024-bit) are considered weak and vulnerable.
-            </p>
-            <p>
-              <strong>Scoring Impact:</strong><br/>
-              Finding a valid DKIM key awards <strong>+20 pts</strong>. A weak key (&lt;2048 bits) incurs a slight penalty (-5 pts).
-            </p>
-          </div>
-
-          <div className="edu-card">
-            <h3>5. MX Check (Mail Exchange)</h3>
-            <p>
-              We check for <code>MX</code> records to verify if the domain is configured to receive emails. If a domain sends emails but cannot receive them, some aggressive spam filters might penalize it.
-            </p>
-            <p>
-              <strong>Scoring Impact:</strong><br/>
-              Valid MX records indicate a healthy, fully-configured mail domain (<strong>+10 pts</strong>).
-            </p>
-          </div>
-
-          <div className="edu-card">
-            <h3>6. BIMI Check (Brand Indicators)</h3>
-            <p>
-              BIMI (Brand Indicators for Message Identification) allows you to display your corporate logo next to your messages in supported inboxes (like Gmail or Yahoo).
-            </p>
-            <p>
-              <strong>Scoring Impact:</strong><br/>
-              A valid BIMI record at <code>default._bimi.yourdomain.com</code> provides a <strong>+5 pts</strong> bonus for maximizing brand trust and visibility.
-            </p>
-          </div>
-
-          <div className="edu-card">
-            <h3>7. Final Grade Calculation</h3>
-            <p>
-              The system aggregates the points and assigns a letter grade (Max 100):
-            </p>
-            <table className="edu-table">
-              <tbody>
-                <tr><th>A+ (90-100)</th><td>Perfect configuration (Reject + HardFail + Strong DKIM)</td></tr>
-                <tr><th>A  (80-89)</th><td>Strong protection (Quarantine + SoftFail)</td></tr>
-                <tr><th>B  (60-79)</th><td>Good, but using p=none (Monitoring mode)</td></tr>
-                <tr><th>C  (40-59)</th><td>Missing major protocols (No DMARC)</td></tr>
-                <tr><th>F  (&lt;40)</th><td>Critical security risks, highly vulnerable</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <div className="history-section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h3>Analysis History</h3>
-          <button className="history-toggle" onClick={() => setShowHistory(!showHistory)}>
-            <History size={18} />
-            {showHistory ? 'Hide' : 'Show'}
-          </button>
-        </div>
-
-        {showHistory && (
-          <div className="history-content fade-in">
-            {loadingHistory ? (
-              <SkeletonLoader type="table" lines={5} />
-            ) : history.length > 0 ? (
-              <div className="table-responsive">
-                <table className="history-table">
-                  <thead>
-                    <tr>
-                      <th>Domain</th>
-                      <th>Score</th>
-                      <th>Date</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {history.map((item) => (
-                      <tr key={item.id}>
-                        <td className="font-mono">{item.domain}</td>
-                        <td>
-                          <span className={`status-badge ${item.score?.color || 'info'}`}>
-                            <span className="dot"></span>
-                            {item.score?.grade || 'N/A'} - {item.score?.score || 0}/100
-                          </span>
-                        </td>
-                        <td>{new Date(item.analyzed_at).toLocaleString('en-US')}</td>
-                        <td>
-                          <button 
-                            className="btn-text" 
-                            onClick={() => loadPastAnalysis(item.id)}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--accent-primary)', background: 'none', border: 'none', cursor: 'pointer' }}
-                          >
-                            View <ArrowRight size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
-                No analysis history available.
-              </p>
-            )}
-          </div>
-        )}
-      </div>
+      <AnalysisHistory history={history} loading={loadingHistory} onOpen={openPastAnalysis} />
     </div>
   );
 };

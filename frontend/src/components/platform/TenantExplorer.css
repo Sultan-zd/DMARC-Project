@@ -1,0 +1,256 @@
+.explorer-lead {
+  margin: -0.7rem 0 1.1rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.explorer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.explorer-list > li {
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.explorer-list > li.open {
+  border-color: var(--accent-primary);
+}
+
+/* ─── Row ─── */
+
+.explorer-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.explorer-head:hover {
+  background: var(--bg-secondary);
+}
+
+.explorer-chevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform var(--transition);
+}
+
+.explorer-list > li.open .explorer-chevron {
+  transform: rotate(90deg);
+  color: var(--accent-primary);
+}
+
+.explorer-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.explorer-counts {
+  font-size: 0.79rem;
+  color: var(--text-muted);
+}
+
+.explorer-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  background: var(--danger-bg);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--danger);
+  white-space: nowrap;
+}
+
+/* An abandoned sign-up is untidy, not broken. */
+.explorer-flag.empty {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+}
+
+/* ─── Opened ─── */
+
+.explorer-body {
+  padding: 0.25rem 0.9rem 1rem;
+  border-top: 1px solid var(--border-primary);
+}
+
+.explorer-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.6rem 1.4rem;
+  margin: 0.9rem 0;
+}
+
+.explorer-facts > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.explorer-facts dt {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.explorer-facts dd {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.explorer-facts dd.failing { color: var(--danger); }
+
+.explorer-domains {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.9rem;
+  font-size: 0.79rem;
+  color: var(--text-muted);
+}
+
+.explorer-domains svg { color: var(--accent-primary); }
+
+.explorer-domains span {
+  padding: 0.1rem 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+}
+
+.explorer-domains span.verified {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+/* ─── Accounts ─── */
+
+.explorer-accounts {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.explorer-accounts th {
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  font-size: 0.69rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.explorer-accounts td {
+  padding: 0.55rem 0.6rem;
+  font-size: 0.83rem;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-primary);
+  vertical-align: middle;
+}
+
+.explorer-accounts tbody tr:last-child td { border-bottom: none; }
+
+.account-name {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  flex-wrap: wrap;
+}
+
+.account-email {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.account-you,
+.account-pending {
+  font-size: 0.63rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.08rem 0.35rem;
+  border-radius: 3px;
+}
+
+.account-you {
+  background: var(--accent-glow);
+  color: var(--accent-secondary);
+}
+
+/* Somebody still using a password issued by someone else. */
+.account-pending {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.explorer-accounts .muted { color: var(--text-secondary); white-space: nowrap; }
+.explorer-actions { text-align: right; white-space: nowrap; }
+
+.btn-tiny {
+  padding: 0.25rem 0.6rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-tiny:hover:not(:disabled) {
+  border-color: var(--accent-primary);
+  color: var(--accent-secondary);
+}
+
+.btn-tiny:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.explorer-none {
+  margin: 0.5rem 0;
+  padding: 0.9rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.explorer-remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.9rem;
+}
+
+.explorer-boundary {
+  margin: 0.9rem 0 0;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--border-primary);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}

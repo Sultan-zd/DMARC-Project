@@ -4,24 +4,29 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.teknologiia.dmarc.dto.analysis.*;
 import com.teknologiia.dmarc.dto.report.PaginatedResponse;
+import com.teknologiia.dmarc.dto.stats.DomainPosture;
 import com.teknologiia.dmarc.model.Alert;
 import com.teknologiia.dmarc.model.DomainAnalysis;
+import com.teknologiia.dmarc.model.Organization;
 import com.teknologiia.dmarc.repository.AlertRepository;
-import com.teknologiia.dmarc.repository.DomainAnalysisRepository;
+import com.teknologiia.dmarc.repository.DmarcRecordRepository;
 import com.teknologiia.dmarc.repository.DmarcReportRepository;
-import com.teknologiia.dmarc.model.DmarcReport;
-import com.teknologiia.dmarc.model.DmarcRecord;
+import com.teknologiia.dmarc.repository.DomainAnalysisRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import org.xbill.DNS.*;
 import org.xbill.DNS.Record;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -31,9 +36,18 @@ public class DomainAnalysisService {
     private final DomainAnalysisRepository domainAnalysisRepository;
     private final AlertRepository alertRepository;
     private final ObjectMapper objectMapper;
+    private final DmarcRecordRepository recordRepository;
     private final DmarcReportRepository reportRepository;
 
-    // DKIM selectors commonly used by popular email providers
+    // Every point value used below comes from ScoringModel, which is also what
+    // /api/analysis/scoring-model publishes. Numbers typed here a second time are
+    // how the dashboard came to advertise a scale the engine had stopped using.
+
+    private static final Pattern SPF_REDIRECT =
+            Pattern.compile("redirect=([a-z0-9._-]+)", Pattern.CASE_INSENSITIVE);
+
+    // DKIM selectors commonly used by popular email providers. Tried after any
+    // selector observed in the organization's own reports.
     private static final List<String> DKIM_SELECTORS = List.of(
             // General & Common
             "default", "google", "selector1", "selector2", 
@@ -42,18 +56,42 @@ public class DomainAnalysisService {
             // Protonmail, Zoho, Fastmail
             "protonmail", "protonmail2", "protonmail3", "zmail", "fm1", "fm2", "fm3",
             // Legacy / Standard sizes
-            "dkim", "mail", "s1024", "s2048", "pm", "mandrill"
+            "dkim", "mail", "s1024", "s2048", "pm", "mandrill",
+            // Amazon SES, Postmark, Mailgun, Zendesk, HubSpot, Klaviyo
+            "amazonses", "pm-bounces", "mailo", "mte1", "mte2", "zendesk1", "zendesk2",
+            "hs1-", "hs2-", "kl1", "kl2", "smtp", "email", "mailjet", "sparkpost"
     );
 
     /**
      * Perform a real DNS-based security analysis of the given domain.
      */
-    public DomainAnalysisResponse analyzeDomain(String domain, String username) {
+    public DomainAnalysisResponse analyzeDomain(String domain, String username,
+                                                Organization organization) {
+        return analyzeDomain(domain, username, organization, true);
+    }
+
+    /**
+     * @param raiseAlerts whether findings should be pushed into the team alert feed.
+     *                    Anonymous public scans pass {@code false}: a visitor checking
+     *                    an unrelated domain should not generate alerts for the team.
+     */
+    public DomainAnalysisResponse analyzeDomain(String domain, String username,
+                                                Organization organization, boolean raiseAlerts) {
         log.info("Starting DNS analysis for domain: {}", domain);
 
         List<DnsRecordResult> records = new ArrayList<>();
         List<RecommendationDTO> recommendations = new ArrayList<>();
         Map<String, Integer> breakdown = new LinkedHashMap<>();
+
+        // Selectors this organization has actually observed for the domain, taken from
+        // its own aggregate reports. Empty for anonymous scans, which have no tenant.
+        List<String> knownDkimSelectors = organization == null
+                ? List.of()
+                : recordRepository.findKnownDkimSelectors(organization.getId(), domain);
+        if (!knownDkimSelectors.isEmpty()) {
+            log.debug("Trying {} DKIM selector(s) observed in stored reports for {}",
+                    knownDkimSelectors.size(), domain);
+        }
 
         // 1. Analyse DMARC
         DnsRecordResult dmarcResult = lookupDmarc(domain);
@@ -68,7 +106,7 @@ public class DomainAnalysisService {
         breakdown.put("SPF", spfScore);
 
         // 3. Analyse DKIM
-        DnsRecordResult dkimResult = lookupDkim(domain);
+        DnsRecordResult dkimResult = lookupDkim(domain, knownDkimSelectors);
         records.add(dkimResult);
         int dkimScore = scoreDkim(dkimResult, recommendations);
         breakdown.put("DKIM", dkimScore);
@@ -79,14 +117,32 @@ public class DomainAnalysisService {
         int mxScore = scoreMx(mxResult, recommendations);
         breakdown.put("MX", mxScore);
 
-        // 5. Analyse BIMI
+        // 5. BIMI — reported but not scored. It is a brand-display feature requiring a
+        // paid Verified Mark Certificate, not an email security control, and counting
+        // it made a perfect score unreachable for domains that correctly skip it.
         DnsRecordResult bimiResult = lookupBimi(domain);
         records.add(bimiResult);
-        int bimiScore = scoreBimi(bimiResult, recommendations);
-        breakdown.put("BIMI", bimiScore);
+        scoreBimi(bimiResult, recommendations);
 
-        // Calculate total score & grade
-        int totalScore = dmarcScore + spfScore + dkimScore + mxScore + bimiScore;
+        // The score is the share of applicable points earned. A check that cannot be
+        // determined — DKIM, whose selectors are unlistable — is dropped from both
+        // sides of the ratio rather than counted as a failure.
+        int earned = dmarcScore + spfScore + mxScore;
+        int applicable = ScoringModel.MAX_DMARC + ScoringModel.MAX_SPF + ScoringModel.MAX_MX;
+
+        boolean dkimDeterminable = !"indeterminate".equals(dkimResult.status());
+        if (dkimDeterminable) {
+            earned += dkimScore;
+            applicable += ScoringModel.MAX_DKIM;
+        } else {
+            recommendations.add(new RecommendationDTO("info", "DKIM",
+                    "DKIM could not be verified, so it is excluded from the score rather than "
+                            + "counted against you.",
+                    "Import this domain's DMARC reports: they name the selectors actually in use, "
+                            + "and the next analysis will check those directly."));
+        }
+
+        int totalScore = applicable == 0 ? 0 : Math.round(earned * 100f / applicable);
         totalScore = Math.min(100, Math.max(0, totalScore));
         String grade = computeGrade(totalScore);
         String color = computeColor(totalScore);
@@ -94,13 +150,13 @@ public class DomainAnalysisService {
         SecurityScore securityScore = new SecurityScore(totalScore, grade, color, breakdown);
 
         // Persist analysis
-        DomainAnalysis entity = persistAnalysis(domain, username, totalScore, grade, records, recommendations);
+        DomainAnalysis entity = persistAnalysis(
+                domain, username, organization, totalScore, grade, records, recommendations, breakdown);
 
-        // Create alerts for critical/high findings
-        createAlertsForFindings(domain, records, recommendations);
-        
-        // Generate mock XML data for the dashboard
-        generateMockDataForDomain(domain);
+        // Alerts belong to a tenant, so they are only raised for a signed-in scan.
+        if (raiseAlerts && organization != null) {
+            createAlertsForFindings(organization, domain, records, recommendations);
+        }
 
         log.info("DNS analysis complete for {}: score={}, grade={}", domain, totalScore, grade);
 
@@ -111,9 +167,10 @@ public class DomainAnalysisService {
         );
     }
 
-    public PaginatedResponse<DomainAnalysisResponse> getHistory(int page, int pageSize) {
+    public PaginatedResponse<DomainAnalysisResponse> getHistory(Long organizationId, int page, int pageSize) {
         Page<DomainAnalysis> dbPage = domainAnalysisRepository
-                .findAllByOrderByAnalyzedAtDesc(PageRequest.of(Math.max(0, page - 1), pageSize));
+                .findByOrganizationIdOrderByAnalyzedAtDesc(
+                        organizationId, PageRequest.of(Math.max(0, page - 1), pageSize));
 
         List<DomainAnalysisResponse> items = dbPage.getContent().stream()
                 .map(this::entityToResponse)
@@ -123,63 +180,94 @@ public class DomainAnalysisService {
                 page, pageSize, dbPage.getTotalPages());
     }
 
-    public DomainAnalysisResponse getAnalysis(Long id) {
-        return domainAnalysisRepository.findById(id)
-                .map(this::entityToResponse)
-                .orElseThrow(() -> new RuntimeException("Analysis not found: " + id));
+    /**
+     * Current posture of every domain this organization has analysed, weakest first.
+     *
+     * <p>Built entirely from stored analyses — real DNS facts. It deliberately does
+     * not invent traffic figures: those come only from ingested DMARC reports, and a
+     * DNS analysis produces none.
+     */
+    public List<DomainPosture> getDomainPosture(Long organizationId) {
+        return domainAnalysisRepository.findLatestPerDomain(organizationId).stream()
+                .map(latest -> toPosture(organizationId, latest))
+                .toList();
     }
 
-    private void generateMockDataForDomain(String domain) {
-        if (reportRepository.count() > 500) {
-            // Prevent database from growing too large from spamming analyses
-            return;
-        }
+    private DomainPosture toPosture(Long organizationId, DomainAnalysis latest) {
+        DomainAnalysisResponse detail = entityToResponse(latest);
+        Map<String, Object> dmarc = parsedFor(detail, "DMARC");
 
-        // Check if data already exists for this domain
-        // Since we don't have a countByDomain method readily visible, we'll just check if a report exists
-        // Actually, we can fetch all and check, or just blindly insert 10 days of data for the demo.
-        // Let's insert 30 days of data.
-        
-        Random random = new Random(domain.hashCode());
-        String[] ips = {"192.168.1.100", "10.0.0.50", "172.217.14.69", "104.47.58.33", "209.85.220.41", "40.107.22.130", "185.70.40.1", "203.0.113.25", "98.137.65.45"};
-        
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        
-        for (int i = 0; i < 30; i++) {
-            DmarcReport report = DmarcReport.builder()
-                    .reportId("rep-" + domain + "-" + System.currentTimeMillis() + "-" + i)
-                    .orgName("ISP Data for " + domain)
-                    .orgEmail("noreply@isp.com")
-                    .dateBegin(now.minusDays(30 - i))
-                    .dateEnd(now.minusDays(29 - i))
-                    .domain(domain)
-                    .adkim("r")
-                    .aspf("r")
-                    .policy("none")
-                    .spPolicy("none")
-                    .pct(100)
-                    .build();
+        // The score at the previous analysis, so the panel can show movement. The
+        // history is newest-first, so element 1 is the one before this.
+        List<DomainAnalysis> history =
+                domainAnalysisRepository.findHistoryForDomain(organizationId, latest.getDomain());
+        Integer previous = history.size() > 1 ? history.get(1).getScore() : null;
 
-            List<DmarcRecord> records = new ArrayList<>();
-            int numRecords = random.nextInt(4) + 2; // 2 to 5 records per day
-            for (int j = 0; j < numRecords; j++) {
-                boolean isPass = random.nextInt(100) > 20; // 80% pass rate roughly
-                records.add(DmarcRecord.builder()
-                        .report(report)
-                        .sourceIp(ips[random.nextInt(ips.length)])
-                        .count(random.nextInt(200) + 10)
-                        .disposition(isPass ? "none" : (random.nextBoolean() ? "quarantine" : "reject"))
-                        .dkimResult(isPass ? "pass" : "fail")
-                        .spfResult(isPass ? "pass" : (random.nextBoolean() ? "softfail" : "fail"))
-                        .dkimDomain(domain)
-                        .spfDomain(domain)
-                        .headerFrom(domain)
-                        .envelopeFrom(domain)
-                        .build());
-            }
-            report.setRecords(records);
-            reportRepository.save(report);
+        return new DomainPosture(
+                latest.getDomain(),
+                latest.getScore(),
+                latest.getGrade(),
+                text(dmarc, "p"),
+                integer(dmarc, "pct"),
+                text(dmarc, "sp"),
+                dmarc.containsKey("rua"),
+                statusFor(detail, "SPF"),
+                statusFor(detail, "DKIM"),
+                latest.getAnalyzedAt(),
+                previous,
+                reportRepository.countFiltered(organizationId, latest.getDomain(), null, null));
+    }
+
+    private Map<String, Object> parsedFor(DomainAnalysisResponse detail, String type) {
+        return detail.records().stream()
+                .filter(r -> type.equals(r.type()) && r.parsed() != null)
+                .findFirst()
+                .map(DnsRecordResult::parsed)
+                .orElse(Map.of());
+    }
+
+    private String statusFor(DomainAnalysisResponse detail, String type) {
+        return detail.records().stream()
+                .filter(r -> type.equals(r.type()))
+                .findFirst()
+                .map(DnsRecordResult::status)
+                .orElse("unknown");
+    }
+
+    private static String text(Map<String, Object> parsed, String key) {
+        Object value = parsed.get(key);
+        return value == null ? null : String.valueOf(value);
+    }
+
+    private static Integer integer(Map<String, Object> parsed, String key) {
+        Object value = parsed.get(key);
+        if (value instanceof Number number) {
+            return number.intValue();
         }
+        try {
+            return value == null ? null : Integer.valueOf(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /** Scoped fetch for signed-in callers. */
+    public DomainAnalysisResponse getAnalysis(Long organizationId, Long id) {
+        return domainAnalysisRepository.findByIdAndOrganizationId(id, organizationId)
+                .map(this::entityToResponse)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "No analysis with id " + id));
+    }
+
+    /**
+     * Unscoped fetch, used only by the public scanner for analyses it owns itself
+     * (those have no organization). Not reachable from an authenticated endpoint.
+     */
+    public DomainAnalysisResponse getPublicAnalysis(Long id) {
+        return domainAnalysisRepository.findById(id)
+                .map(this::entityToResponse)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "No analysis with id " + id));
     }
 
     // ─── DNS LOOKUP METHODS ─────────────────────────────────────────
@@ -241,8 +329,19 @@ public class DomainAnalysisService {
         }
     }
 
-    private DnsRecordResult lookupDkim(String domain) {
-        for (String selector : DKIM_SELECTORS) {
+    /**
+     * Looks for a DKIM key.
+     *
+     * <p>DKIM selectors cannot be enumerated from DNS — the only way to find one is
+     * to try names and see which resolve. Selectors seen in this organization's own
+     * aggregate reports are tried first, because those are facts rather than guesses;
+     * a list of common provider selectors follows.
+     */
+    private DnsRecordResult lookupDkim(String domain, List<String> knownSelectors) {
+        List<String> candidates = new ArrayList<>(knownSelectors);
+        DKIM_SELECTORS.stream().filter(sel -> !candidates.contains(sel)).forEach(candidates::add);
+
+        for (String selector : candidates) {
             String dkimDomain = selector + "._domainkey." + domain;
             try {
                 Lookup lookup = new Lookup(dkimDomain, Type.TXT);
@@ -275,10 +374,14 @@ public class DomainAnalysisService {
                 log.debug("DKIM lookup failed for selector {}.{}: {}", selector, domain, e.getMessage());
             }
         }
-        return new DnsRecordResult("DKIM", "not_found", null,
-                Map.of("selectorsChecked", DKIM_SELECTORS),
-                "No DKIM record found (tested selectors: " +
-                        String.join(", ", DKIM_SELECTORS) + ")");
+        // "indeterminate", not "not_found": failing to guess a selector is not
+        // evidence that DKIM is absent. google.com signs with date-based selectors
+        // that no fixed list can predict, and scoring that as a failure was wrong.
+        return new DnsRecordResult("DKIM", "indeterminate", null,
+                Map.of("selectorsChecked", candidates.size()),
+                "No DKIM key found under " + candidates.size() + " common selectors. "
+                        + "Selectors cannot be listed from DNS, so DKIM may still be active "
+                        + "under a name not tried here.");
     }
 
     private DnsRecordResult lookupMx(String domain) {
@@ -378,7 +481,9 @@ public class DomainAnalysisService {
 
     // ─── SCORING METHODS ────────────────────────────────────────────
 
-    private int scoreDmarc(DnsRecordResult result, List<RecommendationDTO> recs) {
+    // Package-private so ScoringModelTest can hold the engine to what
+    // ScoringModel advertises.
+    int scoreDmarc(DnsRecordResult result, List<RecommendationDTO> recs) {
         if (!"found".equals(result.status())) {
             recs.add(new RecommendationDTO("critical", "DMARC",
                     "No DMARC record detected. Your domain is vulnerable to email spoofing.",
@@ -390,40 +495,45 @@ public class DomainAnalysisService {
         int score;
         switch (policy) {
             case "reject":
-                score = 35;
+                score = ScoringModel.DMARC_REJECT;
                 recs.add(new RecommendationDTO("success", "DMARC",
                         "Excellent DMARC 'reject' policy: non-compliant emails are rejected.",
                         null));
                 break;
             case "quarantine":
-                score = 25;
+                score = ScoringModel.DMARC_QUARANTINE;
                 recs.add(new RecommendationDTO("info", "DMARC",
                         "DMARC 'quarantine' policy detected. Non-compliant emails are quarantined.",
                         "Consider upgrading to 'reject' policy for maximum protection after verifying your legitimate emails pass authentication."));
                 break;
             default: // "none"
-                score = 10;
+                score = ScoringModel.DMARC_NONE;
                 recs.add(new RecommendationDTO("warning", "DMARC",
                         "DMARC 'none' policy detected. No action is taken on non-compliant emails.",
                         "Gradually upgrade from 'none' to 'quarantine' and then 'reject' to protect your domain against spoofing."));
                 break;
         }
 
-        // Check for rua (reporting)
+        // A policy with no reporting address leaves the owner blind to what is being
+        // sent as their domain, so it costs part of the DMARC allowance.
         if (result.parsed().containsKey("rua")) {
             recs.add(new RecommendationDTO("success", "DMARC",
                     "Aggregate reporting address (rua) configured.",
                     null));
         } else {
             recs.add(new RecommendationDTO("info", "DMARC",
-                    "No aggregate reporting address (rua) configured.",
-                    "Add rua=mailto:dmarc-reports@yourdomain.com to receive DMARC reports."));
+                    "No aggregate reporting address (rua): you receive no visibility into "
+                            + "who is sending mail as this domain.",
+                    "Add rua=mailto:dmarc-reports@yourdomain.com to the DMARC record."));
+            score = Math.max(0, score - ScoringModel.DMARC_NO_RUA_PENALTY);
         }
 
         return score;
     }
 
-    private int scoreSpf(DnsRecordResult result, List<RecommendationDTO> recs) {
+    // Package-private so ScoringModelTest can hold the engine to what
+    // ScoringModel advertises.
+    int scoreSpf(DnsRecordResult result, List<RecommendationDTO> recs) {
         if (!"found".equals(result.status())) {
             recs.add(new RecommendationDTO("critical", "SPF",
                     "No SPF record detected. Anyone can send emails pretending to be your domain.",
@@ -432,62 +542,151 @@ public class DomainAnalysisService {
         }
 
         String raw = Objects.toString(result.rawRecord(), "").toLowerCase();
-        String qualifier = Objects.toString(result.parsed().get("allQualifier"), "?all");
-        int score;
 
-        if (raw.contains("-all")) {
-            score = 30;
-            recs.add(new RecommendationDTO("success", "SPF",
-                    "SPF configured with '-all' (hard fail): unauthorized servers will be rejected.",
-                    null));
-        } else if (raw.contains("~all")) {
-            score = 20;
-            recs.add(new RecommendationDTO("info", "SPF",
-                    "SPF configured with '~all' (soft fail): unauthorized servers will be marked but not rejected.",
-                    "Consider upgrading to '-all' for strict rejection of unauthorized senders."));
-        } else if (raw.contains("?all")) {
-            score = 10;
-            recs.add(new RecommendationDTO("warning", "SPF",
-                    "SPF configured with '?all' (neutral): no action is specified for unauthorized servers.",
-                    "Upgrade to '~all' or '-all' for better protection."));
-        } else {
-            score = 15;
+        // `redirect=` delegates the whole policy to another domain's record, so the
+        // effective "all" qualifier lives there. Without following it, a perfectly
+        // strict record such as facebook.com's reads as having no qualifier at all.
+        String effective = raw;
+        String redirectTarget = redirectTarget(raw);
+        if (redirectTarget != null) {
+            String redirected = lookupSpfRecord(redirectTarget);
+            if (redirected != null) {
+                effective = redirected.toLowerCase();
+                recs.add(new RecommendationDTO("info", "SPF",
+                        "SPF delegates to " + redirectTarget + " via 'redirect='.",
+                        "The effective policy is the one published by " + redirectTarget + "."));
+            }
         }
 
-        // Check for too many includes (DNS lookup limit is 10)
-        long includeCount = raw.chars().filter(c -> c == ' ').count();
-        if (includeCount > 10) {
+        int score;
+        if (effective.contains("-all")) {
+            score = ScoringModel.SPF_HARD_FAIL;
+            recs.add(new RecommendationDTO("success", "SPF",
+                    "SPF ends in '-all' (hard fail): unauthorized servers are rejected.",
+                    null));
+        } else if (effective.contains("~all")) {
+            score = ScoringModel.SPF_SOFT_FAIL;
+            recs.add(new RecommendationDTO("info", "SPF",
+                    "SPF ends in '~all' (soft fail): unauthorized servers are marked, not rejected.",
+                    "Move to '-all' once you are confident every legitimate sender is listed."));
+        } else if (effective.contains("?all")) {
+            score = ScoringModel.SPF_NEUTRAL;
             recs.add(new RecommendationDTO("warning", "SPF",
-                    "Your SPF record seems to contain too many mechanisms. The DNS lookup limit is 10.",
-                    "Consolidate your SPF mechanisms or use sub-includes to stay under the 10 lookups limit."));
+                    "SPF ends in '?all' (neutral): receivers are told to take no action.",
+                    "Use '~all' or '-all' so unauthorized senders are actually handled."));
+        } else if (effective.contains("+all")) {
+            score = ScoringModel.SPF_PASS_ALL;
+            recs.add(new RecommendationDTO("critical", "SPF",
+                    "SPF ends in '+all', which authorizes every server on the internet to send as your domain.",
+                    "Replace '+all' with '-all' immediately."));
+        } else {
+            score = ScoringModel.SPF_NO_ALL;
+            recs.add(new RecommendationDTO("warning", "SPF",
+                    "SPF has no 'all' mechanism, so unlisted senders fall through as neutral.",
+                    "End the record with '-all' or '~all'."));
+        }
+
+        // RFC 7208 caps a policy at 10 DNS-resolving mechanisms. Only include, a, mx,
+        // ptr, exists and redirect count — ip4/ip6 entries cost nothing, and the
+        // previous check counted spaces, so IP-heavy records were flagged wrongly.
+        int lookups = countSpfDnsLookups(raw);
+        if (lookups > ScoringModel.SPF_LOOKUP_LIMIT) {
+            recs.add(new RecommendationDTO("critical", "SPF",
+                    "SPF needs " + lookups + " DNS lookups; the limit is "
+                            + ScoringModel.SPF_LOOKUP_LIMIT + ". Receivers stop evaluating "
+                            + "past the limit, which makes SPF fail for legitimate mail.",
+                    "Flatten or remove includes to get back under " + ScoringModel.SPF_LOOKUP_LIMIT + "."));
+        } else if (lookups > ScoringModel.SPF_LOOKUP_WARNING) {
+            recs.add(new RecommendationDTO("warning", "SPF",
+                    "SPF uses " + lookups + " of the " + ScoringModel.SPF_LOOKUP_LIMIT
+                            + " permitted DNS lookups.",
+                    "There is little headroom left before SPF breaks; consider consolidating includes."));
         }
 
         return score;
     }
 
-    private int scoreDkim(DnsRecordResult result, List<RecommendationDTO> recs) {
+    /** Extracts the target of a {@code redirect=} modifier, if the record has one. */
+    String redirectTarget(String raw) {
+        Matcher matcher = SPF_REDIRECT.matcher(raw);
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
+    /** Fetches a domain's SPF record, used to resolve redirects. */
+    private String lookupSpfRecord(String domain) {
+        try {
+            Lookup lookup = new Lookup(domain, Type.TXT);
+            lookup.setResolver(new SimpleResolver("8.8.8.8"));
+            lookup.setCache(null);
+            Record[] results = lookup.run();
+
+            if (results != null) {
+                for (Record r : results) {
+                    String value = String.join("", ((TXTRecord) r).getStrings());
+                    if (value.toLowerCase().startsWith("v=spf1")) {
+                        return value;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("SPF redirect lookup failed for {}: {}", domain, e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Counts the DNS-resolving mechanisms in an SPF record, per RFC 7208 §4.6.4.
+     * Only these consume the budget of 10; {@code ip4:} and {@code ip6:} do not.
+     */
+    int countSpfDnsLookups(String raw) {
+        int lookups = 0;
+        for (String term : raw.split("\\s+")) {
+            String bare = term.replaceFirst("^[+~?-]", "");
+            if (bare.startsWith("include:") || bare.startsWith("exists:")
+                    || bare.startsWith("redirect=") || bare.startsWith("ptr")
+                    || bare.equals("a") || bare.startsWith("a:") || bare.startsWith("a/")
+                    || bare.equals("mx") || bare.startsWith("mx:") || bare.startsWith("mx/")) {
+                lookups++;
+            }
+        }
+        return lookups;
+    }
+
+    // Package-private so ScoringModelTest can hold the engine to what
+    // ScoringModel advertises.
+    int scoreDkim(DnsRecordResult result, List<RecommendationDTO> recs) {
+        // The caller drops this control from the score entirely when it is
+        // indeterminate; the returned value is then unused.
+        if ("indeterminate".equals(result.status())) {
+            return 0;
+        }
         if (!"found".equals(result.status())) {
             recs.add(new RecommendationDTO("warning", "DKIM",
-                    "No DKIM record found with common selectors. DKIM signing might not be configured or uses a custom selector.",
-                    "Configure DKIM with your email provider and publish the public key in a TXT record under selector._domainkey.yourdomain.com."));
+                    "No DKIM key is published. Messages cannot be cryptographically signed, "
+                            + "so DMARC has to rely on SPF alone — which breaks when mail is forwarded.",
+                    "Enable DKIM with your email provider and publish the key under "
+                            + "selector._domainkey." + "yourdomain.com."));
             return 0;
         }
         
         int keySize = result.parsed().containsKey("keySizeBits") ? (Integer) result.parsed().get("keySizeBits") : 0;
-        if (keySize > 0 && keySize < 2048) {
+        if (keySize > 0 && keySize < ScoringModel.DKIM_MIN_KEY_BITS) {
             recs.add(new RecommendationDTO("warning", "DKIM",
-                    "DKIM key size is " + keySize + " bits. Keys smaller than 2048 bits are considered weak and vulnerable to cracking.",
-                    "Upgrade your DKIM key to 2048 bits through your email provider to ensure strong cryptographic protection."));
-            return 15;
+                    "The DKIM key is " + keySize + " bits. Below " + ScoringModel.DKIM_MIN_KEY_BITS
+                            + " bits a key is considered weak.",
+                    "Ask your email provider to rotate to a " + ScoringModel.DKIM_MIN_KEY_BITS + "-bit key."));
+            return ScoringModel.DKIM_WEAK_KEY;
         } else {
             recs.add(new RecommendationDTO("success", "DKIM",
-                    "DKIM record found and public key published" + (keySize >= 2048 ? " (Strong " + keySize + "-bit key)." : "."),
+                    "DKIM key published" + (keySize >= ScoringModel.DKIM_MIN_KEY_BITS ? " (" + keySize + "-bit)." : "."),
                     null));
-            return 20;
+            return ScoringModel.DKIM_STRONG;
         }
     }
 
-    private int scoreMx(DnsRecordResult result, List<RecommendationDTO> recs) {
+    // Package-private so ScoringModelTest can hold the engine to what
+    // ScoringModel advertises.
+    int scoreMx(DnsRecordResult result, List<RecommendationDTO> recs) {
         if (!"found".equals(result.status())) {
             recs.add(new RecommendationDTO("warning", "MX",
                     "No MX record found. This domain cannot receive emails.",
@@ -495,17 +694,18 @@ public class DomainAnalysisService {
             return 0;
         }
         recs.add(new RecommendationDTO("success", "MX",
-                "MX record(s) configured correctly.",
+                "MX records are published, so the domain can receive mail.",
                 null));
-        return 15;
+        return ScoringModel.MX_PRESENT;
     }
 
     private int scoreBimi(DnsRecordResult result, List<RecommendationDTO> recs) {
         if ("found".equals(result.status())) {
             recs.add(new RecommendationDTO("success", "BIMI",
-                    "BIMI record is correctly configured. Compatible mail clients will display your brand logo.",
+                    "BIMI is published: supporting inboxes will show your logo. "
+                            + "Informational — BIMI is not part of the security score.",
                     null));
-            return 5;
+            return 0;
         } else {
             recs.add(new RecommendationDTO("info", "BIMI",
                     "No BIMI record detected. BIMI allows you to display your brand logo next to your emails in supported inboxes.",
@@ -569,34 +769,39 @@ public class DomainAnalysisService {
 
     // ─── GRADE AND COLOR ────────────────────────────────────────────
 
-    private String computeGrade(int score) {
-        if (score >= 90) return "A+";
-        if (score >= 80) return "A";
-        if (score >= 70) return "B";
-        if (score >= 60) return "C";
-        if (score >= 50) return "D";
+    // Package-private: ScoringModelTest checks the published bands against it.
+    String computeGrade(int score) {
+        if (score >= ScoringModel.GRADE_A_PLUS) return "A+";
+        if (score >= ScoringModel.GRADE_A) return "A";
+        if (score >= ScoringModel.GRADE_B) return "B";
+        if (score >= ScoringModel.GRADE_C) return "C";
+        if (score >= ScoringModel.GRADE_D) return "D";
         return "F";
     }
 
     private String computeColor(int score) {
-        if (score >= 80) return "green";
-        if (score >= 60) return "orange";
+        if (score >= ScoringModel.GRADE_A) return "green";
+        if (score >= ScoringModel.GRADE_C) return "orange";
         return "red";
     }
 
     // ─── PERSISTENCE ────────────────────────────────────────────────
 
     private DomainAnalysis persistAnalysis(String domain, String username,
+                                           Organization organization,
                                            int score, String grade,
                                            List<DnsRecordResult> records,
-                                           List<RecommendationDTO> recommendations) {
+                                           List<RecommendationDTO> recommendations,
+                                           Map<String, Integer> breakdown) {
         try {
             DomainAnalysis entity = DomainAnalysis.builder()
+                    .organization(organization)
                     .domain(domain)
                     .score(score)
                     .grade(grade)
                     .resultsJson(objectMapper.writeValueAsString(records))
                     .recommendationsJson(objectMapper.writeValueAsString(recommendations))
+                    .scoreBreakdownJson(objectMapper.writeValueAsString(breakdown))
                     .analyzedAt(LocalDateTime.now(ZoneOffset.UTC))
                     .analyzedBy(username)
                     .build();
@@ -619,9 +824,17 @@ public class DomainAnalysisService {
                     objectMapper.getTypeFactory().constructCollectionType(List.class, RecommendationDTO.class))
                     : List.of();
 
+            // Analyses stored before the breakdown was persisted have no value here,
+            // so fall back to an empty map rather than failing to render.
+            Map<String, Integer> breakdown = entity.getScoreBreakdownJson() != null
+                    ? objectMapper.readValue(entity.getScoreBreakdownJson(),
+                    objectMapper.getTypeFactory().constructMapType(
+                            LinkedHashMap.class, String.class, Integer.class))
+                    : Map.of();
+
             String color = computeColor(entity.getScore());
             SecurityScore securityScore = new SecurityScore(
-                    entity.getScore(), entity.getGrade(), color, Map.of());
+                    entity.getScore(), entity.getGrade(), color, breakdown);
 
             return new DomainAnalysisResponse(
                     entity.getId(), entity.getDomain(), securityScore,
@@ -640,12 +853,13 @@ public class DomainAnalysisService {
 
     // ─── AUTO-ALERT CREATION ────────────────────────────────────────
 
-    private void createAlertsForFindings(String domain,
+    private void createAlertsForFindings(Organization organization, String domain,
                                           List<DnsRecordResult> records,
                                           List<RecommendationDTO> recommendations) {
         for (RecommendationDTO rec : recommendations) {
             if ("critical".equals(rec.severity())) {
                 Alert alert = Alert.builder()
+                        .organization(organization)
                         .alertType("dns_analysis")
                         .severity("critical")
                         .message("[" + domain + "] " + rec.category() + ": Missing critical configuration")
@@ -655,6 +869,7 @@ public class DomainAnalysisService {
                 alertRepository.save(alert);
             } else if ("warning".equals(rec.severity())) {
                 Alert alert = Alert.builder()
+                        .organization(organization)
                         .alertType("dns_analysis")
                         .severity("high")
                         .message("[" + domain + "] " + rec.category() + ": Configuration to improve")

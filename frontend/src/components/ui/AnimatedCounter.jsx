@@ -33,7 +33,7 @@ const AnimatedCounter = ({ value, duration = 1000, prefix = '', suffix = '', dec
 
   const formatNumber = (num) => {
     if (typeof num === 'string') return num;
-    const formatter = new Intl.NumberFormat('fr-FR', {
+    const formatter = new Intl.NumberFormat('en-US', {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals
     });

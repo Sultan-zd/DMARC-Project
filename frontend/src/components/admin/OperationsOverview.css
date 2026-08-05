@@ -1,0 +1,102 @@
+.ops-overview {
+  display: grid;
+  /* Six tiles: three and three reads as two rows, where four-then-two
+     leaves a gap that looks like something failed to load. */
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.ops-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 1.15rem 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+}
+
+/* Something an administrator has to decide about, not merely read. */
+.ops-card.attention {
+  border-left: 3px solid var(--warning);
+}
+
+.ops-card header {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.ops-card header svg {
+  color: var(--accent-primary);
+}
+
+.ops-card > strong {
+  font-size: 1.85rem;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.ops-state {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1.15rem !important;
+}
+
+.ops-card.attention .ops-state { color: var(--warning); }
+.ops-card:not(.attention) .ops-state { color: var(--success); }
+
+.ops-sub {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.ops-sub.mono,
+.ops-breakdown.mono {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ops-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.ops-breakdown {
+  margin: 0.65rem 0 0;
+  padding: 0.6rem 0 0;
+  border-top: 1px solid var(--border-primary);
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.ops-breakdown li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  font-size: 0.79rem;
+  color: var(--text-secondary);
+}
+
+.ops-count {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}

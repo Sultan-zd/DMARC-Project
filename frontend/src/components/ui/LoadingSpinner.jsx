@@ -6,7 +6,7 @@ const LoadingSpinner = () => {
   return (
     <div className="loading-spinner">
       <Shield className="spinner-icon" size={48} />
-      <p>Chargement...</p>
+      <p>Loading...</p>
     </div>
   );
 };

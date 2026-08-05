@@ -21,10 +21,13 @@
   margin: 0;
 }
 
+/* Import and ingestion, side by side under account management. Both are ways of
+   getting reports in, so they belong together. */
 .admin-grid {
   display: grid;
-  grid-template-columns: 1.5fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: 1.5rem;
+  margin-top: 1.5rem;
 }
 
 .admin-card {
@@ -59,12 +62,6 @@
 
 .icon-blue {
   color: var(--primary) !important;
-}
-
-.admin-col-right {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
 }
 
 .users-table {
@@ -112,7 +109,7 @@
 .role-analyst {
   background: var(--info-bg);
   color: var(--info);
-  border: 1px solid rgba(37, 99, 235, 0.3);
+  border: 1px solid rgba(4, 107, 210, 0.3);
 }
 
 .role-viewer {
@@ -188,12 +185,12 @@
 }
 
 .btn-primary {
-  background: var(--primary);
-  color: white;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
 }
 
 .btn-primary:hover {
-  background: #1d4ed8;
+  background: var(--btn-primary-bg-hover);
 }
 
 .btn-secondary {
@@ -225,13 +222,13 @@
 .form-feedback.success {
   background: var(--success-bg);
   color: var(--success);
-  border: 1px solid rgba(5, 150, 105, 0.2);
+  border: 1px solid rgba(0, 174, 78, 0.25);
 }
 
 .form-feedback.error {
   background: var(--danger-bg);
   color: var(--danger);
-  border: 1px solid rgba(220, 38, 38, 0.2);
+  border: 1px solid rgba(198, 40, 40, 0.25);
 }
 
 .ingestion-card .description {
@@ -267,6 +264,15 @@
   color: var(--text-primary);
 }
 
+.ingestion-errors {
+  margin-top: 0.625rem;
+  padding-top: 0.625rem;
+  border-top: 1px solid var(--border-primary);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
 .admin-access-denied {
   display: flex;
   flex-direction: column;
@@ -291,4 +297,38 @@
   .admin-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ─── Sections ───
+   The page was a flat stack of cards of equal weight, which made an administrator
+   scan all of it to find one thing. Three headed groups instead, in the order the
+   questions arrive: how people get in, who is in, where the data comes from. */
+
+.admin-section {
+  margin-top: 2.25rem;
+}
+
+.admin-section-head {
+  margin-bottom: 1rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.admin-section-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text-primary);
+}
+
+.admin-section-head p {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* The grid already spaces itself inside a section. */
+.admin-section .admin-grid {
+  margin-top: 0;
 }

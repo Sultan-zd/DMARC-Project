@@ -11,13 +11,29 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity @Table(name = "dmarc_reports")
+/**
+ * A DMARC aggregate report, owned by the organization that ingested it.
+ *
+ * <p>{@code report_id} is unique <em>per organization</em>, not globally: two
+ * organizations legitimately receive the same provider report, and one importing it
+ * must not make it look like a duplicate to the other.
+ */
+@Entity
+@Table(name = "dmarc_reports",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_report_per_organization",
+                columnNames = {"organization_id", "report_id"}))
 @Data @NoArgsConstructor @AllArgsConstructor @Builder
 public class DmarcReport {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "report_id", unique = true, nullable = false)
+    /** Tenant owner. Every query for reports filters on this. */
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "organization_id", nullable = false)
+    private Organization organization;
+
+    @Column(name = "report_id", nullable = false)
     private String reportId;
 
     @Column(name = "org_name")

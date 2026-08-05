@@ -66,7 +66,10 @@
   margin-bottom: 1.25rem;
 }
 
-.filter-select {
+/* Scoped to this page: Reports.css styles a `.filter-select` that sits behind a
+   leading icon and needs the extra left padding. Page stylesheets are bundled
+   together, so an unscoped rule here silently overrode it there. */
+.alerts-page .filter-select {
   background: var(--bg-card);
   border: 1px solid var(--border-primary);
   color: var(--text-primary);
@@ -78,8 +81,9 @@
   transition: border-color 0.2s;
 }
 
-.filter-select:hover, .filter-select:focus {
-  border-color: var(--primary);
+.alerts-page .filter-select:hover,
+.alerts-page .filter-select:focus {
+  border-color: var(--accent-primary);
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
@@ -216,27 +220,7 @@
   margin: 0;
 }
 
-.btn-primary {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: var(--primary);
-  color: white;
-  border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: var(--radius-md);
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s, transform 0.1s;
-}
 
-.btn-primary:hover {
-  background: var(--primary-hover);
-}
-
-.btn-primary:active {
-  transform: scale(0.98);
-}
 
 @media (max-width: 768px) {
   .alerts-header {

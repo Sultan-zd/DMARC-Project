@@ -1,54 +1,157 @@
 package com.teknologiia.dmarc.service;
 
 import com.teknologiia.dmarc.dto.report.PaginatedResponse;
+import com.teknologiia.dmarc.dto.report.RecordResponse;
 import com.teknologiia.dmarc.dto.report.ReportDetailResponse;
 import com.teknologiia.dmarc.dto.report.ReportListResponse;
+import com.teknologiia.dmarc.model.DmarcRecord;
 import com.teknologiia.dmarc.model.DmarcReport;
 import com.teknologiia.dmarc.repository.DmarcReportRepository;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-import org.springframework.transaction.annotation.Transactional;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(readOnly = true)
 public class ReportService {
+
+    /** Caps how much a single request can pull, regardless of what the client asks for. */
+    private static final int MAX_PAGE_SIZE = 200;
+
+    /**
+     * Sortable columns, keyed by the snake_case name the API exposes. Restricting
+     * sorting to a known set keeps client input out of the generated query.
+     */
+    private static final Map<String, String> SORTABLE = Map.of(
+            "date_begin", "dateBegin",
+            "date_end", "dateEnd",
+            "created_at", "createdAt",
+            "org_name", "orgName",
+            "domain", "domain",
+            "report_id", "reportId",
+            "policy", "policy"
+    );
 
     private final DmarcReportRepository reportRepository;
 
     public PaginatedResponse<ReportListResponse> getReports(
-            String domain, String orgName, String sourceIp, 
+            Long organizationId,
+            String domain, String orgName, String sourceIp,
             LocalDateTime dateFrom, LocalDateTime dateTo, String policy,
             String sortBy, String sortOrder, int page, int size) {
-        
-        List<DmarcReport> allReports = reportRepository.findAll();
-        if (domain != null && !domain.isEmpty()) {
-            allReports = allReports.stream().filter(r -> r.getDomain().equalsIgnoreCase(domain)).collect(Collectors.toList());
-        }
 
-        List<ReportListResponse> list = allReports.stream().map(r -> new ReportListResponse(
-                r.getId(), r.getReportId(), r.getOrgName(), r.getDateBegin(), r.getDateEnd(),
-                r.getDomain(), r.getPolicy(), r.getRecords().size(),
-                r.getRecords().stream().mapToInt(com.teknologiia.dmarc.model.DmarcRecord::getCount).sum(),
-                r.getCreatedAt()
-        )).collect(Collectors.toList());
+        int pageNumber = Math.max(page, 1);
+        int pageSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
 
-        return new PaginatedResponse<>(list, list.size(), page, size, 1);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortOrder) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        String sortField = SORTABLE.getOrDefault(sortBy, "dateBegin");
+
+        // PageRequest is zero-based; the API is one-based.
+        Pageable pageable = PageRequest.of(pageNumber - 1, pageSize, Sort.by(direction, sortField));
+
+        Specification<DmarcReport> spec =
+                filter(organizationId, domain, orgName, sourceIp, dateFrom, dateTo, policy);
+        Page<DmarcReport> results = reportRepository.findAll(spec, pageable);
+
+        List<ReportListResponse> items = results.getContent().stream()
+                .map(report -> new ReportListResponse(
+                        report.getId(), report.getReportId(), report.getOrgName(),
+                        report.getDateBegin(), report.getDateEnd(), report.getDomain(), report.getPolicy(),
+                        report.getRecords().size(),
+                        report.getRecords().stream().mapToInt(DmarcRecord::getCount).sum(),
+                        report.getCreatedAt()))
+                .toList();
+
+        return new PaginatedResponse<>(
+                items, results.getTotalElements(), pageNumber, pageSize, results.getTotalPages());
     }
 
-    public ReportDetailResponse getReport(Long id) {
-        DmarcReport r = reportRepository.findById(id).orElseThrow();
+    /**
+     * Fetches one report. The lookup is scoped to the caller's organization, so a
+     * report belonging to another tenant is indistinguishable from one that does
+     * not exist — no existence oracle.
+     */
+    public ReportDetailResponse getReport(Long organizationId, Long id) {
+        DmarcReport report = reportRepository.findByIdAndOrganizationId(id, organizationId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "No DMARC report with id " + id));
+
+        List<RecordResponse> records = report.getRecords().stream()
+                .map(record -> new RecordResponse(
+                        record.getId(), record.getSourceIp(), record.getCount(), record.getDisposition(),
+                        record.getDkimResult(), record.getSpfResult(), record.getDkimDomain(),
+                        record.getSpfDomain(), record.getHeaderFrom(), record.getEnvelopeFrom(),
+                        record.getDkimSelector()))
+                .toList();
+
         return new ReportDetailResponse(
-                r.getId(), r.getReportId(), r.getOrgName(), r.getOrgEmail(), r.getDateBegin(), r.getDateEnd(),
-                r.getDomain(), r.getAdkim(), r.getAspf(), r.getPolicy(), r.getSpPolicy(), r.getPct(), r.getCreatedAt(),
-                r.getRecords().stream().map(rec -> new com.teknologiia.dmarc.dto.report.RecordResponse(
-                        rec.getId(), rec.getSourceIp(), rec.getCount(), rec.getDisposition(), rec.getDkimResult(), rec.getSpfResult(),
-                        rec.getDkimDomain(), rec.getSpfDomain(), rec.getHeaderFrom(), rec.getEnvelopeFrom(), null
-                )).collect(Collectors.toList())
-        );
+                report.getId(), report.getReportId(), report.getOrgName(), report.getOrgEmail(),
+                report.getDateBegin(), report.getDateEnd(), report.getDomain(), report.getAdkim(),
+                report.getAspf(), report.getPolicy(), report.getSpPolicy(), report.getPct(),
+                report.getCreatedAt(), records);
+    }
+
+    private Specification<DmarcReport> filter(Long organizationId,
+                                              String domain, String orgName, String sourceIp,
+                                              LocalDateTime dateFrom, LocalDateTime dateTo, String policy) {
+        return (root, query, builder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Unconditional tenant predicate. Everything below only narrows within
+            // the caller's own data.
+            predicates.add(builder.equal(root.get("organization").get("id"), organizationId));
+
+            if (hasText(domain)) {
+                predicates.add(builder.equal(builder.lower(root.get("domain")), domain.trim().toLowerCase()));
+            }
+            if (hasText(orgName)) {
+                predicates.add(builder.like(builder.lower(root.get("orgName")),
+                        "%" + orgName.trim().toLowerCase() + "%"));
+            }
+            if (hasText(policy)) {
+                predicates.add(builder.equal(builder.lower(root.get("policy")), policy.trim().toLowerCase()));
+            }
+            if (dateFrom != null) {
+                predicates.add(builder.greaterThanOrEqualTo(root.get("dateBegin"), dateFrom));
+            }
+            if (dateTo != null) {
+                predicates.add(builder.lessThanOrEqualTo(root.get("dateBegin"), dateTo));
+            }
+            if (hasText(sourceIp) && query != null) {
+                // Matching a source IP has to reach into the report's records. A join would
+                // emit one row per matching record, which inflates the paging count query
+                // (distinct cannot be applied there); an exists subquery keeps it one row
+                // per report for both the data and the count query.
+                Subquery<Integer> matching = query.subquery(Integer.class);
+                Root<DmarcRecord> record = matching.from(DmarcRecord.class);
+                matching.select(builder.literal(1)).where(builder.and(
+                        builder.equal(record.get("report"), root),
+                        builder.like(record.get("sourceIp"), sourceIp.trim() + "%")));
+
+                predicates.add(builder.exists(matching));
+            }
+
+            return builder.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

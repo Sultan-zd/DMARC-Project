@@ -10,7 +10,9 @@
     </parent>
     <groupId>com.teknologiia</groupId>
     <artifactId>dmarc</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <!-- The dashboard reports this version at runtime; it was previously stuck at a
+         hard-coded v1.0.0 in the footer while the build said 0.0.1-SNAPSHOT. -->
+    <version>1.0.0</version>
     <name>dmarc-dashboard</name>
     <description>DMARC Web Dashboard Backend</description>
     <properties>
@@ -38,10 +40,19 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
+        <!-- Application database. XAMPP ships MariaDB, so this is the matching
+             driver; it also speaks to Oracle MySQL if the server is swapped later. -->
+        <dependency>
+            <groupId>org.mariadb.jdbc</groupId>
+            <artifactId>mariadb-java-client</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- Test-only: the suite runs against an in-memory database so it never
+             touches the developer's real data. -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>runtime</scope>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
@@ -75,6 +86,14 @@
             <artifactId>itext-core</artifactId>
             <version>8.0.5</version>
             <type>pom</type>
+        </dependency>
+        <!-- Renders the enrolment QR code for two-factor authentication. Server-side
+             so the page needs no external script, which the strict CSP would block
+             anyway. -->
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>javase</artifactId>
+            <version>3.5.3</version>
         </dependency>
         <dependency>
             <groupId>org.springdoc</groupId>
@@ -113,6 +132,24 @@
                 </configuration>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <!-- Forces the throwaway H2 configuration in
+                             application-test.properties on EVERY test, whether or not
+                             it remembers @ActiveProfiles("test").
+
+                             A @SpringBootTest that forgot the annotation once fell back
+                             to the main configuration, connected to the developer's
+                             MariaDB instance, and a deleteAll() in its fixture wiped
+                             real reports and analyses. Activating the profile here
+                             makes that impossible to repeat by omission. -->
+                        <spring.profiles.active>test</spring.profiles.active>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
@@ -123,6 +160,15 @@
                         </exclude>
                     </excludes>
                 </configuration>
+                <executions>
+                    <execution>
+                        <!-- Writes build-info.properties so the running app can report
+                             its real version instead of one typed into the interface. -->
+                        <goals>
+                            <goal>build-info</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

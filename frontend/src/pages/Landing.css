@@ -1,0 +1,646 @@
+.landing {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+}
+
+/* Shared shell so every section lines up on the same measure. */
+.landing-container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.landing-container-narrow {
+  max-width: 780px;
+}
+
+.landing-section {
+  padding: 4.5rem 0;
+}
+
+.landing-section-tint {
+  background: var(--bg-secondary);
+}
+
+.landing-section-dark {
+  background: var(--tek-ink);
+  color: #ffffff;
+}
+
+.section-eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-secondary);
+  margin: 0 0 0.6rem;
+}
+
+.landing-section-dark .section-eyebrow {
+  color: #4ADE80;
+}
+
+.landing-section h2 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.85rem;
+  max-width: 26ch;
+}
+
+.landing-section-dark h2 {
+  color: #ffffff;
+}
+
+.section-lead {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  max-width: 62ch;
+  margin: 0 0 2.5rem;
+}
+
+.landing-section-dark .section-lead {
+  color: #A6ACB6;
+}
+
+/* ─── Hero ─── */
+
+.landing-hero {
+  background: var(--tek-ink);
+  padding: 5rem 1.5rem 4.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.landing-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 78% 12%, rgba(0, 174, 78, 0.22) 0%, transparent 46%),
+    radial-gradient(circle at 12% 88%, rgba(0, 72, 32, 0.35) 0%, transparent 42%);
+  pointer-events: none;
+}
+
+.landing-hero-inner {
+  position: relative;
+  max-width: 820px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.landing-eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #4ADE80;
+  margin: 0 0 1rem;
+}
+
+.landing-hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3.1rem);
+  font-weight: 700;
+  line-height: 1.14;
+  letter-spacing: -0.025em;
+  color: #ffffff;
+  margin: 0 0 1.1rem;
+}
+
+.landing-highlight {
+  color: #4ADE80;
+}
+
+.landing-sub {
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: #A6ACB6;
+  margin: 0 auto 2.25rem;
+  max-width: 600px;
+}
+
+.landing-form {
+  display: flex;
+  gap: 0.75rem;
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.landing-input-wrap {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.landing-input-icon {
+  position: absolute;
+  left: 1rem;
+  color: #6F7783;
+  pointer-events: none;
+}
+
+.landing-form input {
+  width: 100%;
+  padding: 1rem 1rem 1rem 3rem;
+  font-size: 1.05rem;
+  font-family: var(--font-sans);
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-md);
+  transition: var(--transition);
+}
+
+.landing-form input::placeholder {
+  color: #6F7783;
+}
+
+.landing-form input:focus {
+  outline: none;
+  border-color: var(--tek-brand);
+  background: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 0 0 3px rgba(0, 174, 78, 0.25);
+}
+
+/* Dark text on the vivid brand green: 8.2:1, where white would be 2.9:1. */
+.landing-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 1.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--tek-brand);
+  color: #10221A;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.landing-submit:hover:not(:disabled) {
+  background: #14C25E;
+  color: #10221A;
+  transform: translateY(-1px);
+}
+
+.landing-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.landing-note {
+  margin: 1.1rem 0 0;
+  font-size: 0.82rem;
+  color: #6F7783;
+}
+
+/* The four situations that bring someone here. */
+.landing-pains {
+  list-style: none;
+  margin: 2.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem 1.5rem;
+}
+
+.landing-pains li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.85rem;
+  color: #A6ACB6;
+}
+
+.landing-pains svg {
+  color: #4ADE80;
+}
+
+/* ─── Problem ─── */
+
+.problem-grid,
+.compliance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+.problem-grid article {
+  padding: 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+}
+
+.problem-step {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  background: var(--accent-bg);
+  color: var(--accent-secondary);
+  margin-bottom: 0.85rem;
+}
+
+.problem-grid h3,
+.compliance-grid h3 {
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+.problem-grid p,
+.compliance-grid p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+/* ─── Compliance (on the dark band) ─── */
+
+.compliance-grid article {
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+}
+
+.compliance-grid h3 {
+  color: #ffffff;
+}
+
+.compliance-grid p {
+  color: #A6ACB6;
+}
+
+.compliance-date {
+  font-size: 0.78rem !important;
+  font-weight: 600;
+  color: #4ADE80 !important;
+  margin-bottom: 0.6rem !important;
+}
+
+/* ─── How it works ─── */
+
+/* Four steps in a fixed 2×2. auto-fit packed three across and stranded the
+   fourth alone underneath, which read as an afterthought rather than a step. */
+.how-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem 2.5rem;
+}
+
+@media (max-width: 760px) {
+  .how-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+.how-steps li {
+  display: flex;
+  gap: 1rem;
+}
+
+.how-number {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--brand-gradient);
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.how-steps h3 {
+  font-size: 1rem;
+  margin: 0.3rem 0 0.4rem;
+}
+
+.how-steps p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+/* ─── Policy ladder ─── */
+
+.ladder {
+  display: flex;
+  align-items: stretch;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.ladder-step {
+  flex: 1;
+  min-width: 220px;
+  padding: 1.35rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-left: 4px solid var(--text-muted);
+  border-radius: var(--radius-md);
+}
+
+.ladder-step.tone-bad { border-left-color: var(--danger); }
+.ladder-step.tone-warn { border-left-color: var(--warning); }
+.ladder-step.tone-good { border-left-color: var(--accent-primary); }
+
+.ladder-step code {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ladder-step h3 {
+  font-size: 0.98rem;
+  margin: 0.5rem 0 0.4rem;
+}
+
+.ladder-step p {
+  margin: 0;
+  font-size: 0.87rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.ladder-arrow {
+  align-self: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.ladder-note {
+  margin: 1.5rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.ladder-note code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+}
+
+/* ─── Feature grid ─── */
+
+.landing-features-inner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+.landing-features-inner article svg {
+  color: var(--accent-primary);
+  margin-bottom: 0.85rem;
+}
+
+.landing-features-inner h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+  color: var(--text-primary);
+}
+
+.landing-features-inner p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.landing-features-inner code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
+/* ─── FAQ ─── */
+
+.faq details {
+  border-bottom: 1px solid var(--border-primary);
+  padding: 1rem 0;
+}
+
+.faq summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.97rem;
+  color: var(--text-primary);
+  list-style: none;
+  position: relative;
+  padding-right: 1.75rem;
+}
+
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Chevron drawn in CSS so the marker matches the brand rather than the browser. */
+.faq summary::after {
+  content: '';
+  position: absolute;
+  right: 0.3rem;
+  top: 0.35em;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--accent-primary);
+  border-bottom: 2px solid var(--accent-primary);
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+}
+
+.faq details[open] summary::after {
+  transform: rotate(-135deg);
+}
+
+.faq summary:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.faq details p {
+  margin: 0.7rem 0 0;
+  font-size: 0.92rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+
+/* ─── Closing call to action ─── */
+
+.landing-cta {
+  padding: 4rem 0;
+  background: var(--tek-ink);
+  text-align: center;
+}
+
+.landing-cta h2 {
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+  color: #ffffff;
+  margin: 0 0 0.75rem;
+}
+
+.landing-cta p {
+  color: #A6ACB6;
+  font-size: 0.97rem;
+  line-height: 1.65;
+  margin: 0 auto 1.75rem;
+  max-width: 52ch;
+}
+
+.landing-cta-actions {
+  display: flex;
+  gap: 0.85rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.landing-cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  padding: 1rem 1.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius-md);
+  color: #ffffff;
+  font-weight: 600;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.landing-cta-secondary:hover {
+  color: #ffffff;
+  border-color: var(--tek-brand);
+}
+
+/* ─── Footer ─── */
+
+.landing-footer {
+  background: var(--tek-ink-deep);
+  padding: 3rem 0 1.5rem;
+  color: #A6ACB6;
+}
+
+.landing-footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 2rem;
+  padding-bottom: 2.5rem;
+}
+
+.landing-footer-brand img {
+  width: 158px;
+  height: auto;
+  display: block;
+  margin-bottom: 0.9rem;
+}
+
+.landing-footer-brand p {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  max-width: 34ch;
+}
+
+.landing-footer h4 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #ffffff;
+  margin: 0 0 0.85rem;
+}
+
+.landing-footer a {
+  display: block;
+  font-size: 0.87rem;
+  color: #A6ACB6;
+  text-decoration: none;
+  margin-bottom: 0.5rem;
+  transition: var(--transition);
+}
+
+.landing-footer a:hover {
+  color: #4ADE80;
+}
+
+.landing-footer-bottom {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.82rem;
+}
+
+.landing-footer-bars {
+  display: inline-block;
+  width: 10px;
+  height: 14px;
+  flex-shrink: 0;
+  background:
+    linear-gradient(var(--tek-brand), var(--tek-brand)) left / 3px 100% no-repeat,
+    linear-gradient(var(--tek-brand), var(--tek-brand)) 6px 0 / 3px 100% no-repeat;
+}
+
+/* ─── Responsive ─── */
+
+@media (max-width: 900px) {
+  .landing-footer-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ladder-arrow {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .landing-hero {
+    padding: 3rem 1.25rem 3.5rem;
+  }
+
+  .landing-section {
+    padding: 3rem 0;
+  }
+
+  .landing-form {
+    flex-direction: column;
+  }
+
+  .landing-submit {
+    width: 100%;
+  }
+
+  .landing-footer-grid {
+    grid-template-columns: 1fr;
+    gap: 1.75rem;
+  }
+}

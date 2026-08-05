@@ -16,13 +16,15 @@ const ScoreGauge = ({ score = 0, grade = 'F', color = 'red', size = 160 }) => {
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (animatedScore / 100) * circumference;
 
+  // Grade colours run from the Teknologiia green at the top of the scale down to
+  // red, so a strong posture reads as "on brand" and a weak one visibly is not.
   const colorMap = {
-    emerald: '#10b981',
-    green: '#22c55e',
-    blue: '#3b82f6',
-    yellow: '#eab308',
-    orange: '#f97316',
-    red: '#ef4444'
+    emerald: '#00AE4E',
+    green: '#3FBF6E',
+    blue: '#045cb4',
+    yellow: '#d9a300',
+    orange: '#e06c00',
+    red: '#c62828'
   };
 
   const actualColor = colorMap[color] || color;
@@ -36,7 +38,7 @@ const ScoreGauge = ({ score = 0, grade = 'F', color = 'red', size = 160 }) => {
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="rgba(255, 255, 255, 0.1)"
+          stroke="var(--gauge-track, rgba(0, 0, 0, 0.06))"
           strokeWidth={strokeWidth}
         />
         <circle

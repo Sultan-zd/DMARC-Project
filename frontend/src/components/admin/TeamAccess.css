@@ -1,0 +1,296 @@
+.team-access {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* ─── One-time invitation link ─── */
+
+.invite-link-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-lg);
+}
+
+.invite-link-banner > svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--accent-secondary);
+}
+
+.invite-link-banner > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.invite-link-banner strong {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.invite-link-banner p {
+  margin: 0 0 0.55rem;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.invite-link-banner code {
+  display: block;
+  padding: 0.5rem 0.7rem;
+  background: var(--tek-ink);
+  color: #E6EAE8;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  word-break: break-all;
+}
+
+.invite-link-banner > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  padding: 0.5rem 0.85rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.invite-link-banner > button:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-secondary);
+}
+
+/* ─── Forms ─── */
+
+.team-form {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.team-form input,
+.team-form select {
+  padding: 0.6rem 0.7rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.88rem;
+}
+
+.team-form input:focus,
+.team-form select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* ─── Invitations ─── */
+
+.invite-list,
+.domain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.invite-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.invite-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.invite-email {
+  display: block;
+  font-size: 0.86rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invite-role {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.invite-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.invite-state.done { background: var(--success-bg); color: var(--success); }
+.invite-state.pending { background: var(--warning-bg); color: var(--warning); }
+.invite-state.expired { background: var(--bg-card); color: var(--text-muted); }
+
+/* ─── Claimed domains ─── */
+
+.domain-list li {
+  padding: 0.75rem 0.85rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--radius-sm);
+}
+
+.domain-list li.verified {
+  border-left-color: var(--accent-primary);
+}
+
+.domain-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.domain-name {
+  font-family: var(--font-mono);
+  font-size: 0.87rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.domain-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.domain-state.done { background: var(--success-bg); color: var(--success); }
+.domain-state.pending { background: var(--warning-bg); color: var(--warning); }
+
+.domain-role {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+/* Proof instructions, shown only while the claim is unverified. */
+.domain-proof {
+  margin-top: 0.75rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--border-primary);
+}
+
+.domain-proof p {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.proof-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+.proof-row code {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.55rem;
+  background: var(--tek-ink);
+  color: #E6EAE8;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  word-break: break-all;
+}
+
+.proof-row button {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.proof-row button:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-secondary);
+}
+
+.team-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 1rem 0 0;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-primary);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.team-note svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--accent-primary);
+}
+
+@media (max-width: 1100px) {
+  .team-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .team-form {
+    grid-template-columns: 1fr;
+  }
+
+  .invite-link-banner {
+    flex-wrap: wrap;
+  }
+}

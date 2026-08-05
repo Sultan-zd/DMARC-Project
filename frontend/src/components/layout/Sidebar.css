@@ -1,49 +1,140 @@
-/* Sidebar.css — Professional Light Theme */
+/* Sidebar.css — Teknologiia brand rail.
+   The sidebar stays dark in both themes: the Teknologiia wordmark is white with
+   transparent counters, so it only reads against a dark surface. Its internals
+   therefore use the dedicated --sidebar-* tokens rather than the theme's text
+   and surface tokens, which invert with the light theme. */
+
 .sidebar {
   position: fixed;
   left: 0;
   top: 0;
-  width: 260px;
+  width: var(--sidebar-width, 260px);
   height: 100vh;
-  background: #ffffff;
-  border-right: 1px solid var(--border-primary);
+  background: var(--sidebar-bg);
+  border-right: 1px solid rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
   z-index: 100;
   padding: 0;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* ─── Brand ─── */
 
 .sidebar-brand {
-  padding: 1.5rem;
-  border-bottom: 1px solid var(--border-primary);
+  position: relative;
+  padding: 1.5rem 1.25rem 1.25rem;
+  border-bottom: 1px solid var(--sidebar-border);
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
 }
 
-.sidebar-brand .brand-icon {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+.sidebar-brand .brand-logo {
+  width: 168px;
+  height: auto;
+  display: block;
+}
+
+.sidebar-brand .brand-product {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sidebar-text);
+  padding-left: 2px;
+}
+
+/* The brand green underscores the product name, echoing the bars in the mark. */
+.sidebar-brand .brand-product::before {
+  content: '';
+  display: block;
+  width: 26px;
+  height: 2px;
+  margin-bottom: 0.5rem;
+  background: var(--brand-gradient);
+  border-radius: 1px;
+}
+
+/* ─── Close button (mobile only, hidden on desktop) ─── */
+.sidebar-close {
+  display: none;
+  position: absolute;
+  top: 1.25rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  color: var(--sidebar-text);
+  padding: 0.25rem;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.sidebar-close:hover {
+  color: var(--sidebar-text-active);
+  background: var(--sidebar-hover-bg);
+}
+
+/* ─── Global Filter Indicator ─── */
+.sidebar-filter-indicator {
+  padding: 0.85rem 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sidebar-filter-indicator .filter-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sidebar-text);
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+.filter-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--sidebar-active-bg);
+  border: 1px solid rgba(0, 174, 78, 0.4);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.5rem;
+}
+
+.filter-domain-name {
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  color: #4ADE80;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 170px;
+}
+
+.filter-clear {
+  background: none;
+  border: none;
+  color: #4ADE80;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 4px;
+  transition: var(--transition);
+  opacity: 0.75;
 }
 
-.sidebar-brand h1 {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
+.filter-clear:hover {
+  background: rgba(0, 174, 78, 0.22);
+  opacity: 1;
 }
 
-.sidebar-brand span {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 2px;
-}
+/* ─── Navigation ─── */
 
 .sidebar-nav {
   flex: 1;
@@ -60,24 +151,35 @@
   gap: 12px;
   padding: 0.7rem 1rem;
   border-radius: var(--radius-md);
-  color: var(--text-secondary);
+  color: var(--sidebar-text);
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: var(--transition);
   border-left: 3px solid transparent;
 }
 
 .sidebar-nav a:hover {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
+  background: var(--sidebar-hover-bg);
+  color: var(--sidebar-text-active);
 }
 
 .sidebar-nav a.active {
-  background: var(--accent-glow);
-  color: var(--accent-primary);
-  border-left-color: var(--accent-primary);
+  background: var(--sidebar-active-bg);
+  color: #ffffff;
+  border-left-color: var(--tek-brand);
   font-weight: 600;
+}
+
+.sidebar-nav a:focus-visible {
+  outline: 2px solid var(--tek-brand);
+  outline-offset: -2px;
+}
+
+.nav-divider {
+  height: 1px;
+  background: var(--sidebar-border);
+  margin: 0.5rem 0;
 }
 
 .nav-badge {
@@ -95,29 +197,56 @@
   padding: 0 6px;
 }
 
+/* ─── Footer ─── */
+
 .sidebar-footer {
   padding: 1rem 1.25rem;
-  border-top: 1px solid var(--border-primary);
+  border-top: 1px solid var(--sidebar-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: var(--sidebar-bg-deep);
+}
+
+.theme-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: var(--sidebar-hover-bg);
+  border: 1px solid var(--sidebar-border);
+  border-radius: var(--radius-sm);
+  color: var(--sidebar-text);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.theme-btn:hover {
+  color: var(--sidebar-text-active);
+  border-color: var(--tek-brand);
 }
 
 .sidebar-user {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 0.75rem;
 }
 
 .sidebar-user .avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  background: var(--brand-gradient);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: 600;
   font-size: 0.85rem;
+  flex-shrink: 0;
 }
 
 .sidebar-user .user-info {
@@ -128,7 +257,7 @@
 .sidebar-user .user-name {
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--sidebar-text-active);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -136,7 +265,7 @@
 
 .sidebar-user .user-role {
   font-size: 0.7rem;
-  color: var(--text-muted);
+  color: var(--sidebar-text);
   text-transform: capitalize;
 }
 
@@ -148,16 +277,71 @@
   gap: 8px;
   padding: 0.6rem;
   background: transparent;
-  border: 1px solid var(--border-primary);
+  border: 1px solid var(--sidebar-border);
   border-radius: var(--radius-sm);
-  color: var(--text-secondary);
+  color: var(--sidebar-text);
   cursor: pointer;
   font-size: 0.85rem;
-  transition: all 0.2s;
+  transition: var(--transition);
 }
 
 .logout-btn:hover {
-  border-color: var(--danger);
-  color: var(--danger);
-  background: var(--danger-bg);
+  border-color: #F87171;
+  color: #F87171;
+  background: rgba(248, 113, 113, 0.12);
+}
+
+/* ─── Hamburger (mobile only, hidden on desktop) ─── */
+.sidebar-hamburger {
+  display: none;
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 99;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--sidebar-border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
+  cursor: pointer;
+  color: #ffffff;
+  box-shadow: var(--shadow-card);
+}
+
+.sidebar-hamburger:hover {
+  background: var(--sidebar-bg-deep);
+}
+
+/* ─── Overlay (mobile only) ─── */
+.sidebar-overlay {
+  display: none;
+}
+
+/* ═══════════════════════════════════════
+   MOBILE RESPONSIVE — max-width: 768px
+   ═══════════════════════════════════════ */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-hamburger {
+    display: flex;
+  }
+
+  .sidebar-close {
+    display: flex;
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+    backdrop-filter: blur(2px);
+  }
 }

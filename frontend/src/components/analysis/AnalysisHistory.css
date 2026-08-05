@@ -1,0 +1,147 @@
+.analysis-history {
+  padding: 1.5rem 1.6rem;
+}
+
+.analysis-history h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: var(--text-primary);
+}
+
+.history-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.history-count {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.analysis-history .history-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.analysis-history .history-table th {
+  padding: 0.55rem 0.8rem;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-primary);
+  white-space: nowrap;
+}
+
+.analysis-history .history-table td {
+  padding: 0.7rem 0.8rem;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-primary);
+  vertical-align: middle;
+}
+
+.analysis-history .history-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.analysis-history .history-table tbody tr:hover {
+  background: var(--bg-secondary);
+}
+
+.analysis-history .domain-cell {
+  font-weight: 600;
+}
+
+.analysis-history .num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.analysis-history .muted {
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.grade-pill {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2.1rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--radius-sm);
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+
+.grade-pill.good { background: var(--success-bg); color: var(--success); }
+.grade-pill.warn { background: var(--warning-bg); color: var(--warning); }
+.grade-pill.bad { background: var(--danger-bg); color: var(--danger); }
+
+.delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.79rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.delta.up { color: var(--success); font-weight: 600; }
+.delta.down { color: var(--danger); font-weight: 600; }
+.delta.flat,
+.delta.first { color: var(--text-muted); }
+
+.policy-pill {
+  display: inline-block;
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.73rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Enforcement is not failure, so quarantine and reject are not warnings. */
+.policy-pill.p-reject { background: var(--success-bg); color: var(--success); }
+.policy-pill.p-quarantine { background: var(--accent-glow); color: var(--accent-secondary); }
+.policy-pill.p-none { background: var(--warning-bg); color: var(--warning); }
+.policy-pill.none { background: var(--danger-bg); color: var(--danger); }
+
+.history-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--accent-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.history-open:hover {
+  border-color: var(--border-primary);
+  background: var(--bg-secondary);
+}
+
+.history-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 2.5rem 1rem;
+  color: var(--text-muted);
+}
+
+.history-empty p {
+  margin: 0;
+  font-size: 0.88rem;
+}

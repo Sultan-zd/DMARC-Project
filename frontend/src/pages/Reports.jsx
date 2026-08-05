@@ -4,12 +4,18 @@ import Header from '../components/layout/Header';
 import StatusBadge from '../components/ui/StatusBadge';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { useDomain } from '../context/DomainContext';
+import usePageTitle from '../hooks/usePageTitle';
 import * as api from '../services/api';
 import { Search, Filter, Download, ChevronLeft, ChevronRight, Eye, RefreshCw, FileText } from 'lucide-react';
 import './Reports.css';
 
 const Reports = () => {
+  usePageTitle('Reports');
   const { token } = useAuth();
+  const { showToast } = useToast();
+  const { selectedDomain } = useDomain();
   const navigate = useNavigate();
   
   const [loading, setLoading] = useState(true);
@@ -22,6 +28,7 @@ const Reports = () => {
   const [policy, setPolicy] = useState('');
   const [sortBy, setSortBy] = useState('date_begin');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [exporting, setExporting] = useState(null);
   
   const loadReports = async () => {
     setLoading(true);
@@ -29,7 +36,7 @@ const Reports = () => {
       const data = await api.getReports(token, {
         page,
         page_size: pageSize,
-        domain,
+        domain: selectedDomain || domain,
         policy,
         sort_by: sortBy,
         sort_order: sortOrder
@@ -38,6 +45,7 @@ const Reports = () => {
       setTotal(data.total || 0);
     } catch (error) {
       console.error("Error loading reports:", error);
+      showToast('Failed to load reports', 'error');
     } finally {
       setLoading(false);
     }
@@ -47,7 +55,13 @@ const Reports = () => {
     if (token) {
       loadReports();
     }
-  }, [token, page, pageSize, sortBy, sortOrder]);
+  }, [token, page, pageSize, sortBy, sortOrder, selectedDomain]);
+
+  useEffect(() => {
+    if (selectedDomain) {
+      setDomain(selectedDomain);
+    }
+  }, [selectedDomain]);
 
   const handleSort = (field) => {
     if (sortBy === field) {
@@ -70,13 +84,23 @@ const Reports = () => {
     // Let useEffect trigger load when state settles, or trigger explicitly if needed
   };
 
-  const handleExportCSV = () => {
-    api.exportCSV(token, { domain, policy });
+  // The export must cover the same rows the table is showing, so it reuses the
+  // active domain filter rather than the raw input value.
+  const runExport = async (format, exporter) => {
+    setExporting(format);
+    try {
+      await exporter(token, { domain: selectedDomain || domain });
+      showToast(`${format.toUpperCase()} export downloaded`, 'success');
+    } catch (error) {
+      console.error(`${format} export failed:`, error);
+      showToast(`${format.toUpperCase()} export failed`, 'error');
+    } finally {
+      setExporting(null);
+    }
   };
 
-  const handleExportPDF = () => {
-    api.exportPDF(token, { domain, policy });
-  };
+  const handleExportCSV = () => runExport('csv', api.exportCSV);
+  const handleExportPDF = () => runExport('pdf', api.exportPDF);
 
   const totalPages = Math.ceil(total / pageSize) || 1;
 
@@ -93,7 +117,11 @@ const Reports = () => {
 
   return (
     <div className="reports-page">
-      <Header title="DMARC Reports" subtitle="View and analyze detailed reports" />
+      <Header
+        title="DMARC Reports"
+        subtitle="Every aggregate report received, source by source"
+        note="One report per provider per period. The Dashboard summarises these same reports; here you can inspect each sending IP individually."
+      />
       
       <div className="filter-bar">
         <div className="filter-group">
@@ -101,9 +129,11 @@ const Reports = () => {
           <input 
             type="text" 
             className="filter-input" 
-            placeholder="Search by domain..." 
+            placeholder={selectedDomain ? "Filtered globally" : "Search by domain..."}
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
+            disabled={!!selectedDomain}
+            style={selectedDomain ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
           />
         </div>
         <div className="filter-group">
@@ -128,13 +158,13 @@ const Reports = () => {
           <span>{formatNumber(total)} reports found</span>
         </div>
         <div className="export-actions">
-          <button className="btn-secondary btn-icon" onClick={handleExportCSV}>
-            <Download size={16} /> CSV
+          <button className="btn-secondary btn-icon" onClick={handleExportCSV} disabled={exporting !== null}>
+            <Download size={16} /> {exporting === 'csv' ? 'Exporting…' : 'CSV'}
           </button>
-          <button className="btn-secondary btn-icon" onClick={handleExportPDF}>
-            <Download size={16} /> PDF
+          <button className="btn-secondary btn-icon" onClick={handleExportPDF} disabled={exporting !== null}>
+            <Download size={16} /> {exporting === 'pdf' ? 'Exporting…' : 'PDF'}
           </button>
-          <button className="search-btn" onClick={() => loadReports()}>
+          <button className="refresh-btn" onClick={() => loadReports()} aria-label="Refresh reports">
             <RefreshCw size={20} className={loading ? 'spin' : ''} />
           </button>
         </div>

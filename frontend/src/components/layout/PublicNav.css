@@ -1,0 +1,146 @@
+/* Sticky so the scanner call-to-action stays reachable however far down the page
+   a visitor has read. */
+.public-nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--tek-ink);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.public-nav-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0.85rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.public-nav-brand {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.public-nav-brand img {
+  width: 152px;
+  height: auto;
+  display: block;
+}
+
+.public-nav-brand:focus-visible {
+  outline: 2px solid var(--tek-brand);
+  outline-offset: 4px;
+}
+
+.public-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+  flex: 1;
+}
+
+.public-nav-links a {
+  color: #A6ACB6;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.public-nav-links a:hover {
+  color: #ffffff;
+}
+
+.public-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1.05rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+
+.nav-btn-ghost {
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.nav-btn-ghost:hover {
+  color: #ffffff;
+  border-color: var(--tek-brand);
+}
+
+/* Dark text on the vivid brand green: 8.2:1 here, where white would be 2.9:1. */
+.nav-btn-solid {
+  background: var(--tek-brand);
+  color: #10221A;
+}
+
+.nav-btn-solid:hover {
+  background: #14C25E;
+  color: #10221A;
+}
+
+.public-nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: #ffffff;
+  padding: 0.25rem;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .public-nav-inner {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .public-nav-toggle {
+    display: inline-flex;
+    margin-left: auto;
+    order: 2;
+  }
+
+  .public-nav-actions {
+    order: 3;
+  }
+
+  /* Collapsed by default on small screens; the toggle reveals it as a stack. */
+  .public-nav-links {
+    display: none;
+    order: 4;
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.9rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .public-nav-links.is-open {
+    display: flex;
+  }
+}
+
+@media (max-width: 480px) {
+  .public-nav-brand img {
+    width: 128px;
+  }
+
+  .nav-btn {
+    padding: 0.45rem 0.8rem;
+    font-size: 0.82rem;
+  }
+}

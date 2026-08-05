@@ -1,0 +1,194 @@
+.posture-card {
+  padding: 1.5rem;
+}
+
+.posture-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.1rem;
+}
+
+.posture-head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.posture-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ─── Rows ─── */
+
+.posture-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.posture-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.posture-row:last-child {
+  border-bottom: none;
+}
+
+/* Score block, tinted by band so the weakest domains are findable at a glance. */
+.posture-score {
+  flex-shrink: 0;
+  width: 54px;
+  height: 54px;
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.1;
+}
+
+.posture-score.tone-good { background: var(--success-bg); color: var(--success); }
+.posture-score.tone-warn { background: var(--warning-bg); color: var(--warning); }
+.posture-score.tone-bad  { background: var(--danger-bg);  color: var(--danger); }
+
+.posture-grade {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.posture-value {
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+.posture-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.posture-domain {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.posture-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.posture-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.posture-delta.up { color: var(--success); }
+.posture-delta.down { color: var(--danger); }
+
+.posture-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+/* Tinted pills, matching the status-badge treatment used elsewhere: the brand
+   green is reserved for solid fills and would not be readable as text here. */
+.posture-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.posture-pill.tone-good  { background: var(--success-bg); color: var(--success); }
+.posture-pill.tone-warn  { background: var(--warning-bg); color: var(--warning); }
+.posture-pill.tone-bad   { background: var(--danger-bg);  color: var(--danger); }
+.posture-pill.tone-muted { background: var(--bg-secondary); color: var(--text-muted); }
+
+.posture-traffic {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  text-align: right;
+}
+
+.posture-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--accent-secondary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.posture-link:hover {
+  text-decoration: underline;
+}
+
+.posture-none {
+  color: var(--text-muted);
+  cursor: help;
+}
+
+/* ─── Footer and empty state ─── */
+
+.posture-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 1rem 0 0;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-primary);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.posture-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.posture-empty svg {
+  color: var(--text-muted);
+}
+
+.posture-empty .btn-primary {
+  text-decoration: none;
+}
+
+@media (max-width: 640px) {
+  .posture-row {
+    flex-wrap: wrap;
+  }
+
+  .posture-traffic {
+    width: 100%;
+    text-align: left;
+    padding-left: calc(54px + 1rem);
+  }
+}

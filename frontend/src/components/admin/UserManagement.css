@@ -1,0 +1,268 @@
+.user-management {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ─── One-time password banner ─── */
+
+.issued-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-lg);
+}
+
+.issued-banner > svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--warning);
+}
+
+.issued-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.issued-body strong {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.issued-body p {
+  margin: 0 0 0.6rem;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.issued-body code {
+  display: inline-block;
+  padding: 0.45rem 0.7rem;
+  background: var(--tek-ink);
+  color: #4ADE80;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  letter-spacing: 0.03em;
+  word-break: break-all;
+}
+
+.issued-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  padding: 0.5rem 0.85rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.issued-copy:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-secondary);
+}
+
+/* ─── Account table ─── */
+
+.user-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.user-you {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  background: var(--accent-bg);
+  color: var(--accent-secondary);
+}
+
+.user-email {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.role-select {
+  padding: 0.3rem 0.5rem;
+  font-size: 0.82rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.role-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Status doubles as the toggle: one control, one meaning. */
+.status-pill {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.status-pill.active {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.status-pill.inactive {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+}
+
+.status-pill:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.icon-btn:hover:not(:disabled) {
+  border-color: var(--accent-primary);
+  color: var(--accent-secondary);
+}
+
+.icon-btn.danger:hover:not(:disabled) {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: var(--danger-bg);
+}
+
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.user-empty {
+  padding: 1.5rem 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.role-legend {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 1rem 0 0;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border-primary);
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.role-legend svg {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--accent-primary);
+}
+
+.role-legend strong {
+  color: var(--text-secondary);
+}
+
+@media (max-width: 640px) {
+  .issued-banner {
+    flex-wrap: wrap;
+  }
+}
+
+/* ─── Table proportions ───
+   The table shared its row with the create form, so it rendered at two thirds
+   width with every column bunched to the left and a dead gap after the actions.
+   Full width now, with the columns sized to their content instead of splitting
+   the space evenly. */
+
+.users-table {
+  table-layout: fixed;
+}
+
+.users-table .col-user { width: auto; }
+.users-table .col-role { width: 12.5rem; }
+.users-table .col-status { width: 8.5rem; }
+.users-table .col-mfa { width: 8rem; }
+.users-table .col-added { width: 9rem; white-space: nowrap; }
+
+/* Actions belong at the far edge, where the eye stops. Aligned rather than laid
+   out with flex: a display:flex on a <td> takes the cell out of the table's own
+   layout, and the row separator then stopped short of this column. */
+.users-table .col-actions {
+  width: 6rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.users-table td.col-actions .icon-btn + .icon-btn {
+  margin-left: 0.35rem;
+}
+
+.users-table td.col-added {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  font-size: 0.83rem;
+}
+
+/* ─── Second factor, per account ─── */
+
+.mfa-yes,
+.mfa-no {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.mfa-yes { color: var(--success); }
+
+/* Absent, not broken: only the account holder can turn it on. Stating it in grey
+   rather than red keeps it a fact an administrator can act on by asking. */
+.mfa-no { color: var(--text-muted); font-weight: 500; }
+
+/* ─── Header count ─── */
+
+.card-header-icon .card-count {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}

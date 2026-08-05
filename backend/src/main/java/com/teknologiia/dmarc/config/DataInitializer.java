@@ -1,114 +1,104 @@
 package com.teknologiia.dmarc.config;
 
-import com.teknologiia.dmarc.model.Alert;
-import com.teknologiia.dmarc.model.DmarcRecord;
-import com.teknologiia.dmarc.model.DmarcReport;
+import com.teknologiia.dmarc.model.Organization;
 import com.teknologiia.dmarc.model.User;
-import com.teknologiia.dmarc.repository.AlertRepository;
-import com.teknologiia.dmarc.repository.DmarcReportRepository;
+import com.teknologiia.dmarc.repository.OrganizationRepository;
 import com.teknologiia.dmarc.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.security.SecureRandom;
+import java.util.Base64;
 
+/**
+ * Creates the first administrator, and nothing else.
+ *
+ * <p>This class used to seed 120 invented aggregate reports for example.com and
+ * test.org, two alerts about them, and two accounts sharing the password "demo".
+ * All of it is gone. Invented traffic is indistinguishable from real traffic once
+ * it is in the database — it lands in the same charts, the same exports and the
+ * same PDF a customer reads — and a deployment that ships with a way to inject it
+ * will eventually inject it. Reports now come only from the mailbox poller or from
+ * a file somebody uploads.
+ */
 @Component
+@Slf4j
 public class DataInitializer implements ApplicationRunner {
 
     private final UserRepository userRepository;
-    private final DmarcReportRepository reportRepository;
-    private final AlertRepository alertRepository;
     private final PasswordEncoder passwordEncoder;
+    private final OrganizationRepository organizationRepository;
 
     @Value("${app.admin.username}")
     private String adminUsername;
 
-    @Value("${app.admin.password}")
+    @Value("${app.admin.password:}")
     private String adminPassword;
 
-    public DataInitializer(UserRepository userRepository, DmarcReportRepository reportRepository, AlertRepository alertRepository, PasswordEncoder passwordEncoder) {
+    @Value("${app.admin.email:admin@teknologiia.com}")
+    private String adminEmail;
+
+    @Value("${app.admin.organization:Teknologiia}")
+    private String adminOrganization;
+
+    public DataInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder,
+                           OrganizationRepository organizationRepository) {
         this.userRepository = userRepository;
-        this.reportRepository = reportRepository;
-        this.alertRepository = alertRepository;
         this.passwordEncoder = passwordEncoder;
+        this.organizationRepository = organizationRepository;
     }
 
     @Override
     public void run(ApplicationArguments args) {
-        if (!userRepository.existsByUsername(adminUsername)) {
-            User admin = User.builder()
-                    .username(adminUsername)
-                    .email("admin@teknologiia.com")
-                    .hashedPassword(passwordEncoder.encode(adminPassword))
-                    .role("ADMIN")
-                    .active(true)
-                    .build();
-            userRepository.save(admin);
+        // Bootstrapping means getting the first administrator in, not keeping an
+        // account named "admin" alive forever. Checking only for that username meant
+        // deleting it brought it straight back on the next restart, with a fresh
+        // generated password in the log and nobody expecting it.
+        if (userRepository.count() > 0) {
+            return;
         }
 
-        if (reportRepository.count() == 0) {
-            generateDemoData();
+        // The first account needs an organization to belong to. An existing one is
+        // reused so a restart never splits a team in two.
+        Organization organization = organizationRepository.findAll().stream().findFirst()
+                .orElseGet(() -> organizationRepository.save(
+                        Organization.builder().name(adminOrganization).build()));
+
+        // No password in the tracked configuration: when ADMIN_PASSWORD is unset a
+        // strong one is generated and printed once, at the moment the account is
+        // created. It is never recoverable afterwards — only resettable.
+        boolean generated = adminPassword == null || adminPassword.isBlank();
+        String password = generated ? randomPassword() : adminPassword;
+
+        userRepository.save(User.builder()
+                .organization(organization)
+                .username(adminUsername)
+                .email(adminEmail)
+                .hashedPassword(passwordEncoder.encode(password))
+                .role("ADMIN")
+                .active(true)
+                .build());
+
+        if (generated) {
+            log.warn("""
+
+                    ============================================================
+                     Created the administrator account '{}'.
+                     Generated password: {}
+                     This is shown once and is not stored in clear anywhere.
+                     Set ADMIN_PASSWORD to choose it yourself instead.
+                    ============================================================""",
+                    adminUsername, password);
         }
     }
 
-    private void generateDemoData() {
-        if (!userRepository.existsByUsername("analyst1")) {
-            userRepository.save(User.builder().username("analyst1").email("analyst1@demo.com").hashedPassword(passwordEncoder.encode("demo")).role("ANALYST").active(true).build());
-        }
-        if (!userRepository.existsByUsername("viewer1")) {
-            userRepository.save(User.builder().username("viewer1").email("viewer1@demo.com").hashedPassword(passwordEncoder.encode("demo")).role("VIEWER").active(true).build());
-        }
-
-        Random random = new Random(42);
-        String[] domains = {"example.com", "test.org"};
-        String[] ips = {"192.168.1.1", "10.0.0.1", "172.16.0.1", "8.8.8.8"};
-        
-        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
-        
-        for (int i = 0; i < 60; i++) {
-            for (String domain : domains) {
-                DmarcReport report = DmarcReport.builder()
-                        .reportId("rep-" + domain + "-" + i)
-                        .orgName("Org " + domain)
-                        .orgEmail("noreply@" + domain)
-                        .dateBegin(now.minusDays(60 - i))
-                        .dateEnd(now.minusDays(59 - i))
-                        .domain(domain)
-                        .adkim("r")
-                        .aspf("r")
-                        .policy("none")
-                        .spPolicy("none")
-                        .pct(100)
-                        .build();
-
-                List<DmarcRecord> records = new ArrayList<>();
-                for (int j = 0; j < 3; j++) {
-                    records.add(DmarcRecord.builder()
-                            .report(report)
-                            .sourceIp(ips[random.nextInt(ips.length)])
-                            .count(random.nextInt(50) + 1)
-                            .disposition(random.nextBoolean() ? "none" : "quarantine")
-                            .dkimResult(random.nextBoolean() ? "pass" : "fail")
-                            .spfResult(random.nextBoolean() ? "pass" : "fail")
-                            .dkimDomain(domain)
-                            .spfDomain(domain)
-                            .headerFrom(domain)
-                            .envelopeFrom(domain)
-                            .build());
-                }
-                report.setRecords(records);
-                reportRepository.save(report);
-            }
-        }
-        
-        alertRepository.save(Alert.builder().alertType("SPIKE").severity("HIGH").message("Spike detected").details("Detailed info").domain("example.com").read(false).build());
-        alertRepository.save(Alert.builder().alertType("FAILURE_RATE").severity("CRITICAL").message("High failure rate").details("Detailed info").domain("test.org").read(false).build());
+    private String randomPassword() {
+        byte[] bytes = new byte[24];
+        new SecureRandom().nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 }

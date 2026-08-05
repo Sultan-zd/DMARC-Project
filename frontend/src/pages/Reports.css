@@ -52,39 +52,46 @@
 
 .filter-select {
   padding-left: 2.25rem;
+  padding-right: 2rem;
   appearance: none;
-}
-
-.btn-primary {
-  background: var(--accent-primary);
-  color: white;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 0.5rem 1rem;
-  font-weight: 500;
+  /* appearance:none strips the native arrow, which leaves the control looking
+     like a text field. Draw one back so it still reads as a dropdown. */
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - 15px) calc(50% + 1px),
+    calc(100% - 10px) calc(50% + 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
   cursor: pointer;
-  transition: all var(--transition);
 }
 
-.btn-primary:hover {
-  background: var(--accent-secondary);
-}
-
-.btn-secondary {
+/* Icon-only refresh control. Previously reused `.search-btn`, which is defined
+   in DomainAnalysis.css as a 160px-wide primary submit button — page CSS is
+   global here, so it leaked in and rendered as an oversized green slab. */
+.refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  flex-shrink: 0;
   background: var(--bg-card);
-  color: var(--text-primary);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-sm);
-  padding: 0.5rem 1rem;
-  font-weight: 500;
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all var(--transition);
+  transition: var(--transition);
 }
 
-.btn-secondary:hover {
+.refresh-btn:hover {
   background: var(--bg-secondary);
-  border-color: var(--text-muted);
+  border-color: var(--accent-primary);
+  color: var(--accent-secondary);
 }
+
 
 .btn-icon {
   display: flex;
@@ -182,10 +189,6 @@
   background: var(--bg-secondary);
 }
 
-.font-mono {
-  font-family: var(--font-mono);
-  color: var(--text-secondary);
-}
 
 .empty-state {
   text-align: center;

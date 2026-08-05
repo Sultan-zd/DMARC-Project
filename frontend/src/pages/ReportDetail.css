@@ -38,13 +38,6 @@
   border-color: var(--text-muted);
 }
 
-.glass-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
 
 .report-metadata-card {
   padding: 1.5rem;
@@ -198,14 +191,6 @@
   animation: spin 1s ease-in-out infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 
 @media (max-width: 768px) {
   .meta-grid {

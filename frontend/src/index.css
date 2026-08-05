@@ -1,42 +1,138 @@
 :root {
-  /* ─── Professional Light Theme ─── */
-  --bg-primary: #f8fafc;
-  --bg-secondary: #f1f5f9;
+  /* ══════════════════════════════════════════════════════════════
+     Teknologiia brand tokens — sourced from teknologiia.com
+     --tek-brand: #00AE4E · --tek-brand-dark: #004820 · --tek-bg: #27292F
+     ══════════════════════════════════════════════════════════════ */
+  --tek-brand: #00AE4E;
+  --tek-brand-dark: #004820;
+  --tek-ink: #27292F;
+  --tek-ink-deep: #1A1C20;
+  --brand-gradient: linear-gradient(90deg, #00AE4E, #004820);
+
+  /* ─── Light surfaces ─── */
+  --bg-primary: #f7f9fa;
+  --bg-secondary: #eef2f4;
   --bg-card: #ffffff;
-  --bg-card-hover: #f8fafc;
-  --bg-input: #f1f5f9;
-  --border-primary: #e2e8f0;
-  --border-accent: rgba(37, 99, 235, 0.3);
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --accent-primary: #2563eb;
-  --accent-secondary: #1d4ed8;
-  --accent-glow: rgba(37, 99, 235, 0.08);
-  --accent-bg: rgba(37, 99, 235, 0.06);
-  --success: #059669;
-  --success-bg: rgba(5, 150, 105, 0.08);
-  --danger: #dc2626;
-  --danger-bg: rgba(220, 38, 38, 0.06);
-  --warning: #d97706;
-  --warning-bg: rgba(217, 119, 6, 0.06);
-  --info: #2563eb;
-  --info-bg: rgba(37, 99, 235, 0.06);
+  --bg-card-hover: #f7f9fa;
+  --bg-input: #f1f4f6;
+  --border-primary: #e3e8ec;
+  --border-accent: rgba(0, 174, 78, 0.35);
+  --text-primary: #16181C;
+  --text-secondary: #4d5560;
+  --text-muted: #8b939f;
+
+  /* ─── Interactive: solid brand green ─── */
+  --accent-primary: #00AE4E;
+  --accent-secondary: #009243;
+  --accent-glow: rgba(0, 174, 78, 0.12);
+  --accent-bg: rgba(0, 174, 78, 0.07);
+
+  /* Filled controls need their own pair. White on #00AE4E measures 2.9:1, under
+     the 4.5:1 floor, so anything carrying text sits on the deeper brand green
+     instead. The vivid green stays for borders, active states and chart series,
+     where it never has to carry a label. */
+  --btn-primary-bg: #00713A;
+  --btn-primary-bg-hover: #005C2F;
+  --btn-primary-fg: #ffffff;
+  --focus-ring: #009243;
+
+  /* ─── Status: same hue, tinted form.
+     `--success` is deliberately darker than `--accent-primary`: it is painted as
+     text on a pale tint, where the brand green would fail contrast. Solid fills
+     use --accent-primary, tinted badges use --success. ─── */
+  --success: #00713A;
+  --success-bg: rgba(0, 174, 78, 0.11);
+  --danger: #c62828;
+  --danger-bg: rgba(198, 40, 40, 0.08);
+  --warning: #a35a00;
+  --warning-bg: rgba(217, 119, 6, 0.10);
+  --info: #045cb4;
+  --info-bg: rgba(4, 107, 210, 0.08);
+
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 1px 2px rgba(22, 24, 28, 0.05), 0 1px 3px rgba(22, 24, 28, 0.04);
+  --shadow-card-hover: 0 4px 14px rgba(22, 24, 28, 0.09);
+  --shadow-lg: 0 12px 28px rgba(22, 24, 28, 0.12);
   --transition: all 0.2s ease;
+
+  /* Poppins carries the brand voice in headings; Inter keeps dense tables and
+     figures legible, and ships tabular numerals that Poppins lacks. */
+  --font-display: 'Poppins', 'Inter', system-ui, -apple-system, sans-serif;
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 
   /* ─── Glass vars used by some components ─── */
   --glass-bg: #ffffff;
-  --glass-border: #e2e8f0;
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
+  --glass-border: #e3e8ec;
+  --primary: #00AE4E;
+  --primary-hover: #009243;
+
+  /* ─── Gauge background ─── */
+  --gauge-track: rgba(22, 24, 28, 0.07);
+
+  /* ─── Sidebar: always dark, in both themes. The Teknologiia wordmark is white
+     with transparent counters, so it only reads on a dark surface. ─── */
+  --sidebar-bg: #27292F;
+  --sidebar-bg-deep: #1A1C20;
+  --sidebar-text: #A6ACB6;
+  --sidebar-text-active: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.06);
+  --sidebar-active-bg: rgba(0, 174, 78, 0.16);
+  --sidebar-width: 260px;
+}
+
+/* ─── Dark Mode ─── */
+[data-theme="dark"] {
+  --bg-primary: #16181C;
+  --bg-secondary: #1F2228;
+  --bg-card: #1F2228;
+  --bg-card-hover: #272B32;
+  --bg-input: #1F2228;
+  --border-primary: #33383F;
+  --border-accent: rgba(45, 200, 116, 0.4);
+  --text-primary: #F2F4F6;
+  --text-secondary: #A6ACB6;
+  --text-muted: #6F7783;
+
+  /* Brand green is lifted on dark surfaces, where #00AE4E sits too close to the
+     background to carry an interface element. */
+  --accent-primary: #2DC876;
+  --accent-secondary: #23B268;
+  --accent-glow: rgba(45, 200, 116, 0.16);
+  --accent-bg: rgba(45, 200, 116, 0.10);
+
+  --success: #4ADE80;
+  --success-bg: rgba(74, 222, 128, 0.14);
+  --danger: #F87171;
+  --danger-bg: rgba(248, 113, 113, 0.13);
+  --warning: #FBBF24;
+  --warning-bg: rgba(251, 191, 36, 0.13);
+  --info: #60A5FA;
+  --info-bg: rgba(96, 165, 250, 0.13);
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-card-hover: 0 4px 14px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.6);
+  --glass-bg: #1F2228;
+  --glass-border: #33383F;
+  --primary: #2DC876;
+  --primary-hover: #23B268;
+  --gauge-track: rgba(255, 255, 255, 0.09);
+
+  /* On dark surfaces the relationship inverts: the bright green carries dark
+     text at 8.2:1, which is both more accessible and more legible than a deep
+     green that would sink into the background. */
+  --btn-primary-bg: #2DC876;
+  --btn-primary-bg-hover: #43D687;
+  --btn-primary-fg: #16181C;
+  --focus-ring: #2DC876;
+
+  /* The sidebar deepens rather than lightens, keeping the wordmark legible. */
+  --sidebar-bg: #1A1C20;
+  --sidebar-bg-deep: #131519;
 }
 
 *, *::before, *::after {
@@ -52,13 +148,19 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 #root {
   min-height: 100vh;
 }
 
-/* Custom Scrollbar */
+/* Figures must stay column-aligned in tables and stat tiles. */
+table, .font-mono, .stat-value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Custom Scrollbar ─── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -67,11 +169,11 @@ body {
   background: var(--bg-secondary);
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--text-muted);
   border-radius: var(--radius-sm);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--text-secondary);
 }
 
 ::selection {
@@ -79,11 +181,13 @@ body {
   color: #ffffff;
 }
 
-/* Typography */
+/* ─── Typography ─── */
 h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
   color: var(--text-primary);
   font-weight: 600;
   line-height: 1.3;
+  letter-spacing: -0.015em;
 }
 
 h1 { font-size: 2rem; font-weight: 700; }
@@ -101,7 +205,7 @@ a:hover {
   color: var(--accent-secondary);
 }
 
-/* Glass Card — now a clean white card */
+/* ─── Glass Card — clean card ─── */
 .glass-card {
   background: var(--bg-card);
   border: 1px solid var(--border-primary);
@@ -116,7 +220,9 @@ a:hover {
   box-shadow: var(--shadow-card-hover);
 }
 
-/* Animations */
+/* ═══════════════════════════════════════════
+   GLOBAL ANIMATIONS — Single source of truth
+   ═══════════════════════════════════════════ */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -127,17 +233,43 @@ a:hover {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 @keyframes pulse-glow {
-  0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.15); }
-  70% { box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(0, 174, 78, 0.18); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 174, 78, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 174, 78, 0); }
+}
+
+@keyframes countUp {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
 }
 
 .fade-in {
   animation: fadeIn 0.5s ease forwards;
 }
 
-/* Forms & Buttons */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.10s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.20s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.30s; }
+
+/* ─── Forms & Buttons ─── */
 input, select, textarea, button {
   font-family: inherit;
   color: inherit;
@@ -172,19 +304,94 @@ button:hover {
   background: var(--bg-card-hover);
 }
 
-@keyframes countUp {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+/* A focus ring is a functional indicator, so it must clear 3:1 against its
+   backdrop (WCAG 1.4.11). The vivid brand green measures 2.93:1 on white, just
+   under, so focus uses the deeper green — which reads as the same colour. */
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
-.stagger-1 { animation-delay: 0.05s; }
-.stagger-2 { animation-delay: 0.10s; }
-.stagger-3 { animation-delay: 0.15s; }
-.stagger-4 { animation-delay: 0.20s; }
-.stagger-5 { animation-delay: 0.25s; }
-.stagger-6 { animation-delay: 0.30s; }
+/* ═══════════════════════════════════════
+   GLOBAL BUTTON CLASSES (Single source)
+   ═══════════════════════════════════════ */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-fg);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
-button:focus-visible, a:focus-visible {
-  outline: 2px solid var(--accent-primary);
-  outline-offset: 2px;
+.btn-primary:hover {
+  background: var(--btn-primary-bg-hover);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 1.2rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--bg-secondary);
+  border-color: var(--text-muted);
+}
+
+.btn:disabled,
+.btn-primary:disabled,
+.btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ─── Global font-mono utility ─── */
+.font-mono {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+/* ─── Responsive utilities ─── */
+@media (max-width: 768px) {
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.1rem; }
+}
+
+/* Available to assistive technology, absent from the page.
+   Used by table headers whose column holds only controls; it was referenced in two
+   places without ever being defined, so "ACTIONS" and "OPEN" printed as visible
+   column headings. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

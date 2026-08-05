@@ -1,0 +1,250 @@
+.scoring-model {
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.scoring-model-head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 1.35rem 1.6rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.scoring-model-head:hover {
+  background: var(--bg-secondary);
+}
+
+.scoring-model-head > svg:first-child {
+  flex-shrink: 0;
+  color: var(--accent-primary);
+}
+
+.scoring-model-head > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.scoring-model-head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: var(--text-primary);
+}
+
+.scoring-model-head p {
+  margin: 0.15rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.scoring-model-chevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform var(--transition);
+}
+
+.scoring-model.open .scoring-model-chevron {
+  transform: rotate(180deg);
+}
+
+.scoring-model-body {
+  padding: 0 1.6rem 1.6rem;
+  border-top: 1px solid var(--border-primary);
+}
+
+/* ─── One card per control ─── */
+
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 1.1rem;
+  margin-top: 1.4rem;
+}
+
+.control-card {
+  padding: 1.1rem 1.2rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+}
+
+.control-card header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  margin-bottom: 0.5rem;
+}
+
+.control-card h3 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+}
+
+.control-weight {
+  margin-left: auto;
+  padding: 0.1rem 0.5rem;
+  background: var(--accent-glow);
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--accent-secondary);
+}
+
+.control-weight.unscored {
+  background: var(--bg-card);
+  color: var(--text-muted);
+}
+
+.control-purpose {
+  margin: 0 0 0.5rem;
+  font-size: 0.83rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.control-lookup {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+/* ─── Outcomes ─── */
+
+.outcome-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.outcome-table tr + tr th,
+.outcome-table tr + tr td {
+  border-top: 1px solid var(--border-primary);
+}
+
+.outcome-table th,
+.outcome-table td {
+  padding: 0.45rem 0;
+  text-align: left;
+  vertical-align: top;
+  font-weight: 400;
+}
+
+.outcome-table th {
+  width: 12.5rem;
+  padding-right: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--text-primary);
+}
+
+.outcome-points {
+  width: 4.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.outcome-points.good { color: var(--success); }
+.outcome-points.bad { color: var(--danger); }
+.outcome-points.muted { color: var(--text-muted); font-weight: 500; }
+
+.outcome-meaning {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* ─── Grades and the ratio ─── */
+
+.scoring-model-footer {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2rem;
+  margin-top: 1.3rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--border-primary);
+}
+
+.grade-bands h3,
+.scoring-model-footer h3 {
+  margin: 0 0 0.6rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.grade-bands ul {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grade-bands li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.grade-chip {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: var(--radius-sm);
+  font-weight: 800;
+  font-size: 0.9rem;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.grade-chip.grade-Aplus,
+.grade-chip.grade-A { background: var(--success-bg); color: var(--success); }
+.grade-chip.grade-B { background: var(--accent-glow); color: var(--accent-secondary); }
+.grade-chip.grade-C,
+.grade-chip.grade-D { background: var(--warning-bg); color: var(--warning); }
+.grade-chip.grade-F { background: var(--danger-bg); color: var(--danger); }
+
+.grade-range {
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.ratio-note {
+  margin: 0;
+  font-size: 0.83rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 760px) {
+  .scoring-model-footer {
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+  }
+
+  .outcome-table th {
+    width: 9rem;
+  }
+}
+
+/* A control with no outcome table would otherwise leave half a row empty. */
+.control-card.wide {
+  grid-column: 1 / -1;
+}

@@ -1,37 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/layout/Header';
 import StatCard from '../components/ui/StatCard';
+import DomainPosture from '../components/dashboard/DomainPosture';
 import AnimatedCounter from '../components/ui/AnimatedCounter';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { useDomain } from '../context/DomainContext';
+import usePageTitle from '../hooks/usePageTitle';
 import * as api from '../services/api';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { FileText, Mail, ShieldCheck, ShieldAlert, Shield, Server, RefreshCw } from 'lucide-react';
 import './Dashboard.css';
 
 const Dashboard = () => {
+  usePageTitle('Dashboard');
   const { token } = useAuth();
+  const { showToast } = useToast();
+  const { selectedDomain } = useDomain();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState(null);
   const [timeline, setTimeline] = useState([]);
   const [topSenders, setTopSenders] = useState([]);
+  const [posture, setPosture] = useState([]);
 
   const loadData = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
 
     try {
-      const [statsData, timelineData, sendersData] = await Promise.all([
-        api.getOverviewStats(token),
-        api.getTimeline(token, { days: 30 }),
-        api.getTopSenders(token, { limit: 10 })
+      const apiParams = selectedDomain ? { domain: selectedDomain } : {};
+      const [overviewData, timelineData, sendersData, postureData] = await Promise.all([
+        api.getOverviewStats(token, apiParams),
+        api.getTimeline(token, { days: 30, ...apiParams }),
+        api.getTopSenders(token, { limit: 10, ...apiParams }),
+        api.getDomainPosture(token)
       ]);
-      setStats(statsData);
+      setStats(overviewData);
       setTimeline(timelineData);
       setTopSenders(sendersData);
+      setPosture(postureData || []);
     } catch (error) {
       console.error("Error loading dashboard data:", error);
+      showToast('Failed to load dashboard data', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -42,7 +54,7 @@ const Dashboard = () => {
     if (token) {
       loadData();
     }
-  }, [token]);
+  }, [token, selectedDomain]);
 
   if (loading && !stats) {
     return <LoadingSpinner />;
@@ -58,9 +70,11 @@ const Dashboard = () => {
   };
 
   const pieData = stats?.policy_distribution ? [
-    { name: 'None', value: stats.policy_distribution.none, color: '#f59e0b' },
-    { name: 'Quarantine', value: stats.policy_distribution.quarantine, color: '#3b82f6' },
-    { name: 'Reject', value: stats.policy_distribution.reject, color: '#10b981' }
+    // Policy strength, weakest to strongest: p=none applies no enforcement at all,
+    // so it is flagged amber rather than treated as a neutral category.
+    { name: 'None', value: stats.policy_distribution.none, color: '#E09400' },
+    { name: 'Quarantine', value: stats.policy_distribution.quarantine, color: '#045cb4' },
+    { name: 'Reject', value: stats.policy_distribution.reject, color: '#00AE4E' }
   ].filter(d => d.value > 0) : [];
 
   const CustomTooltip = ({ active, payload, label }) => {
@@ -82,7 +96,11 @@ const Dashboard = () => {
   return (
     <div className="dashboard">
       <div className="dashboard-header-container">
-        <Header title="Dashboard" subtitle="DMARC security overview" />
+        <Header
+          title="Dashboard"
+          subtitle="What was actually sent as your domains"
+          note="Aggregated from the DMARC reports mailbox providers send you. These figures describe real traffic — not how your DNS is configured. See Analysis for that."
+        />
         <button 
           className="refresh-btn" 
           onClick={() => loadData(true)}
@@ -91,6 +109,10 @@ const Dashboard = () => {
         >
           <RefreshCw className={refreshing ? 'spin' : ''} size={20} />
         </button>
+      </div>
+
+      <div className="posture-row-wrap">
+        <DomainPosture domains={posture} />
       </div>
 
       {stats && stats.total_reports === 0 && (
@@ -125,20 +147,20 @@ const Dashboard = () => {
                   <AreaChart data={timeline} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorSpfPass" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#00AE4E" stopOpacity={0.35}/>
+                        <stop offset="95%" stopColor="#00AE4E" stopOpacity={0}/>
                       </linearGradient>
                       <linearGradient id="colorSpfFail" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#c62828" stopOpacity={0.35}/>
+                        <stop offset="95%" stopColor="#c62828" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border-primary)" vertical={false} />
                     <XAxis dataKey="date" stroke="var(--text-muted)" fontSize={12} tickLine={false} />
                     <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatNumber} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Area type="monotone" dataKey="spf_pass" name="SPF Pass" stroke="#10b981" fillOpacity={1} fill="url(#colorSpfPass)" strokeWidth={2} />
-                    <Area type="monotone" dataKey="spf_fail" name="SPF Fail" stroke="#ef4444" fillOpacity={1} fill="url(#colorSpfFail)" strokeWidth={2} />
+                    <Area type="monotone" dataKey="spf_pass" name="SPF Pass" stroke="#00AE4E" fillOpacity={1} fill="url(#colorSpfPass)" strokeWidth={2} />
+                    <Area type="monotone" dataKey="spf_fail" name="SPF Fail" stroke="#c62828" fillOpacity={1} fill="url(#colorSpfFail)" strokeWidth={2} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>

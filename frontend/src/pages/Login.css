@@ -5,8 +5,12 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  background: linear-gradient(135deg, #f0f4ff 0%, #e8ecf8 50%, #f8fafc 100%);
+  background: linear-gradient(135deg, #eef5f0 0%, #e6efe9 50%, #f7f9fa 100%);
   overflow: hidden;
+}
+
+[data-theme="dark"] .login-container {
+  background: linear-gradient(135deg, #16181C 0%, #1B2320 50%, #16181C 100%);
 }
 
 .login-background {
@@ -15,10 +19,18 @@
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle at center, rgba(37, 99, 235, 0.05) 0%, transparent 40%),
-              radial-gradient(circle at 80% 20%, rgba(37, 99, 235, 0.04) 0%, transparent 30%);
+  background: radial-gradient(circle at center, rgba(0, 174, 78, 0.07) 0%, transparent 40%),
+              radial-gradient(circle at 80% 20%, rgba(0, 72, 32, 0.05) 0%, transparent 30%);
   animation: rotate 30s linear infinite;
   z-index: 0;
+}
+
+/* The rotating backdrop is decorative; hold it still for anyone who has asked
+   the system to reduce motion. */
+@media (prefers-reduced-motion: reduce) {
+  .login-background {
+    animation: none;
+  }
 }
 
 @keyframes rotate {
@@ -26,51 +38,67 @@
   100% { transform: rotate(360deg); }
 }
 
+/* The sign-in card holds its own dark palette in both themes. It previously
+   hardcoded a white background while its text used the theme tokens, so in dark
+   mode the heading rendered white-on-white and the inputs came out dark on a
+   white card. Scoping the surface here keeps the two in step. */
 .login-card {
+  --card-surface: #27292F;
+  --card-surface-raised: #31343B;
+  --card-border: rgba(255, 255, 255, 0.10);
+  --card-text: #ffffff;
+  --card-text-muted: #A6ACB6;
+
   position: relative;
   z-index: 1;
   width: 100%;
   max-width: 420px;
-  padding: 3rem 2rem;
-  background: #ffffff;
-  border: 1px solid var(--border-primary);
+  padding: 2.75rem 2rem;
+  background: var(--card-surface);
+  border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 18px 48px rgba(22, 24, 28, 0.28), 0 2px 6px rgba(22, 24, 28, 0.16);
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 2.25rem;
 }
 
-.shield-icon-wrapper {
-  display: inline-flex;
-  padding: 1rem;
-  border-radius: 50%;
-  background: var(--accent-glow);
-  border: 1px solid var(--border-accent);
-  margin-bottom: 1.5rem;
+.login-logo {
+  width: 200px;
+  height: auto;
+  display: block;
+  margin: 0 auto 1.75rem;
 }
 
-.shield-icon {
-  color: var(--accent-primary);
+.login-eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--card-text-muted);
+  margin: 0.85rem 0 0;
+}
+
+/* Brand rule under the heading, echoing the bars in the Teknologiia mark. */
+.login-header h1::after {
+  content: '';
+  display: block;
+  width: 32px;
+  height: 3px;
+  margin: 0.75rem auto 0;
+  background: var(--brand-gradient);
+  border-radius: 2px;
 }
 
 .login-header h1 {
-  font-size: 1.75rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 0.5rem 0;
-  letter-spacing: -0.02em;
-}
-
-.login-header .subtitle {
-  color: var(--text-secondary);
-  font-size: 1rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--card-text);
   margin: 0;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: -0.02em;
 }
 
 .login-form {
@@ -88,7 +116,7 @@
 .input-icon {
   position: absolute;
   left: 1rem;
-  color: var(--text-muted);
+  color: var(--card-text-muted);
   pointer-events: none;
   transition: color var(--transition);
 }
@@ -96,25 +124,29 @@
 .input-group input {
   width: 100%;
   padding: 0.875rem 1rem 0.875rem 3rem;
-  background-color: var(--bg-input);
-  border: 1px solid var(--border-primary);
+  background-color: var(--card-surface-raised);
+  border: 1px solid var(--card-border);
   border-radius: var(--radius-md);
-  color: var(--text-primary);
+  color: var(--card-text);
   font-family: var(--font-sans);
   font-size: 1rem;
   transition: all var(--transition);
 }
 
+.input-group input::placeholder {
+  color: var(--card-text-muted);
+}
+
 .input-group input:focus {
   outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px var(--accent-glow);
-  background: #ffffff;
+  border-color: var(--tek-brand);
+  box-shadow: 0 0 0 3px rgba(0, 174, 78, 0.25);
+  background: var(--card-surface-raised);
 }
 
 .input-group input:focus ~ .input-icon,
 .input-group input:not(:placeholder-shown) ~ .input-icon {
-  color: var(--accent-primary);
+  color: var(--tek-brand);
 }
 
 .password-toggle {
@@ -122,7 +154,7 @@
   right: 1rem;
   background: none;
   border: none;
-  color: var(--text-muted);
+  color: var(--card-text-muted);
   cursor: pointer;
   padding: 0;
   display: flex;
@@ -131,14 +163,20 @@
 }
 
 .password-toggle:hover {
-  color: var(--text-primary);
+  color: var(--card-text);
 }
 
 .login-button {
   margin-top: 0.5rem;
   padding: 0.875rem;
-  background: var(--accent-primary);
-  color: white;
+  /* Needed when the button sits outside .login-form — a flex item on the card
+     otherwise shrinks to its label and looks stranded. */
+  width: 100%;
+  /* Fixed to the card's dark surface rather than the theme: the vivid brand
+     green carrying dark text measures 8.2:1 here, where the deeper green used
+     on light backgrounds would sink into the card. */
+  background: var(--tek-brand);
+  color: #10221A;
   border: none;
   border-radius: var(--radius-md);
   font-size: 1rem;
@@ -148,13 +186,13 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+  box-shadow: 0 2px 10px rgba(0, 174, 78, 0.28);
 }
 
 .login-button:hover:not(:disabled) {
-  background: var(--accent-secondary);
+  background: #14C25E;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 174, 78, 0.38);
 }
 
 .login-button:disabled {
@@ -166,10 +204,7 @@
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
+
 
 .error-message {
   padding: 0.75rem;
@@ -190,4 +225,85 @@
   20%, 80% { transform: translate3d(2px, 0, 0); }
   30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
   40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+/* ─── Register / verify (share the Login card surface) ─── */
+
+.register-done-icon {
+  display: block;
+  margin: 0 auto 0.75rem;
+  color: var(--tek-brand);
+}
+
+.register-error-icon {
+  display: block;
+  margin: 0 auto 0.75rem;
+  color: #F87171;
+}
+
+.register-note {
+  margin: 0 0 1.5rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--card-text-muted);
+}
+
+.register-note strong {
+  color: var(--card-text);
+}
+
+.register-hint {
+  margin: -0.5rem 0 0;
+  font-size: 0.78rem;
+  color: var(--card-text-muted);
+}
+
+.register-switch {
+  margin: 1.5rem 0 0;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--card-text-muted);
+}
+
+.register-switch a {
+  color: var(--tek-brand);
+  font-weight: 600;
+}
+
+.register-switch a:hover {
+  color: #14C25E;
+}
+
+/* ─── Two-step verification ─── */
+
+/* Codes are read off a screen and typed in a hurry: wide spacing and a
+   fixed-width face make a transposed digit obvious. */
+.mfa-code {
+  font-family: var(--font-mono);
+  font-size: 1.3rem !important;
+  letter-spacing: 0.35em;
+  text-align: center;
+}
+
+.mfa-code::placeholder {
+  letter-spacing: 0.35em;
+}
+
+.mfa-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  font-size: 0.83rem;
+  color: var(--card-text-muted);
+  cursor: pointer;
+}
+
+.mfa-back:hover {
+  color: var(--tek-brand);
 }

@@ -1,0 +1,56 @@
+.analysis-posture {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.posture-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 1.15rem 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+}
+
+.posture-tile > svg {
+  color: var(--accent-primary);
+}
+
+.posture-tile > div {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.posture-value {
+  font-size: 1.85rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.posture-value.good { color: var(--success); }
+.posture-value.warn { color: var(--warning); }
+.posture-value.bad { color: var(--danger); }
+
+.posture-label {
+  font-size: 0.83rem;
+  color: var(--text-secondary);
+}
+
+.posture-foot {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.posture-foot.mono {
+  font-family: var(--font-mono);
+}

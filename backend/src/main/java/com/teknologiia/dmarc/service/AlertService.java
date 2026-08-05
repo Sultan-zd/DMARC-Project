@@ -17,14 +17,22 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Alerts, scoped to the caller's organization.
+ *
+ * <p>Every method takes the organization id and applies it as a predicate. Nothing
+ * here may fall back to an unscoped repository call.
+ */
 @Service
 @RequiredArgsConstructor
 public class AlertService {
 
     private final AlertRepository alertRepository;
 
-    public PaginatedResponse<AlertResponse> getAlerts(String severity, Boolean isRead, String domain, int page, int size) {
-        Specification<Alert> spec = buildSpecification(severity, isRead, domain);
+    public PaginatedResponse<AlertResponse> getAlerts(Long organizationId, String severity,
+                                                      Boolean isRead, String domain,
+                                                      int page, int size) {
+        Specification<Alert> spec = buildSpecification(organizationId, severity, isRead, domain);
         Page<Alert> dbPage = alertRepository.findAll(spec,
                 PageRequest.of(Math.max(0, page - 1), size, Sort.by(Sort.Direction.DESC, "createdAt")));
 
@@ -36,32 +44,43 @@ public class AlertService {
                 page, size, dbPage.getTotalPages());
     }
 
-    public AlertCount getAlertCount() {
-        long total = alertRepository.count();
-        long unread = alertRepository.countByReadFalse();
-        long critical = alertRepository.countByReadFalseAndSeverity("critical");
-        long high = alertRepository.countByReadFalseAndSeverity("high");
+    public AlertCount getAlertCount(Long organizationId) {
+        // Counted through the tenant-scoped specification rather than repository
+        // count(), which spans every organization.
+        long total = alertRepository.count(buildSpecification(organizationId, null, null, null));
+        long unread = alertRepository.countByOrganizationIdAndReadFalse(organizationId);
+        long critical = alertRepository.countByOrganizationIdAndReadFalseAndSeverity(organizationId, "critical");
+        long high = alertRepository.countByOrganizationIdAndReadFalseAndSeverity(organizationId, "high");
         return new AlertCount(total, unread, critical, high);
     }
 
+    /**
+     * Marks one alert read. The lookup is scoped, so an id belonging to another
+     * organization simply matches nothing instead of being modified.
+     */
     @Transactional
-    public void markAsRead(Long id) {
-        alertRepository.findById(id).ifPresent(alert -> {
+    public void markAsRead(Long organizationId, Long id) {
+        alertRepository.findByIdAndOrganizationId(id, organizationId).ifPresent(alert -> {
             alert.setRead(true);
             alertRepository.save(alert);
         });
     }
 
     @Transactional
-    public void markAllAsRead() {
-        alertRepository.markAllAsRead();
+    public void markAllAsRead(Long organizationId) {
+        alertRepository.markAllAsRead(organizationId);
     }
 
     // ─── HELPERS ────────────────────────────────────────────────────
 
-    private Specification<Alert> buildSpecification(String severity, Boolean isRead, String domain) {
+    private Specification<Alert> buildSpecification(Long organizationId, String severity,
+                                                    Boolean isRead, String domain) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+
+            // The tenant predicate is unconditional: it is what makes every other
+            // filter safe to apply.
+            predicates.add(cb.equal(root.get("organization").get("id"), organizationId));
 
             if (severity != null && !severity.isBlank() && !"all".equalsIgnoreCase(severity)) {
                 predicates.add(cb.equal(root.get("severity"), severity));

@@ -1,236 +1,150 @@
 # 🛡️ DMARC Web Dashboard
 
-A comprehensive web dashboard for monitoring and analyzing **DMARC** (Domain-based Message Authentication, Reporting & Conformance) reports. Built to help SOC teams and IT administrators detect email spoofing, identify SPF/DKIM misconfigurations, and strengthen domain email security.
+Email security monitoring for organizations: analyse a domain's DNS configuration,
+collect the aggregate reports mailbox providers send back, and see who is sending
+mail as your domains.
+
+Built for [Teknologiia](https://www.teknologiia.com).
 
 ![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3-6DB33F?logo=springboot&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-183%20passing-success)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
----
-
-## ✨ Features
-
-- **📊 Dashboard** — Real-time KPIs (SPF/DKIM/DMARC pass rates), email volume charts, policy distribution, and top 10 sender analysis
-- **📧 Automated IMAP Ingestion** — Fetches and parses DMARC XML reports from a configured mailbox (ZIP/GZ support)
-- **📋 Report Browser** — Paginated, sortable, and filterable list of all ingested reports with detailed per-IP authentication records
-- **🔍 Domain Analysis** — Real-time DNS audit of any domain's email security (DMARC, SPF, DKIM, MX, MTA-STS, BIMI) with a security score and actionable recommendations
-- **🚨 Security Alerts** — Automated alert generation when failure rate thresholds are exceeded or volume spikes are detected
-- **👥 Multi-User RBAC** — Role-based access control (Admin, Analyst, Viewer) with JWT authentication
-- **📤 Data Export** — Export reports as CSV or PDF
-- **🔐 Secure by Design** — BCrypt password hashing, stateless JWT, CORS protection
+> 📘 **[Guide complet (français)](COMPLETE_GUIDE.md)** — architecture, fonctionnement,
+> configuration et mise en ligne, expliqués de A à Z.
 
 ---
 
-## 🏗️ Architecture
+## What it does
 
-```text
-┌─────────────────┐       ┌────────────────────┐       ┌──────────────────┐
-│  React Frontend │◄─────►│  Spring Boot API   │◄─────►│    Database      │
-│  (Vite, Router, │ JSON  │  (Port 8000, JWT)  │ JDBC  │  (H2 / Postgres) │
-│   Recharts)     │       │                    │       │                  │
-└─────────────────┘       └────────┬───────────┘       └──────────────────┘
-                                   │ IMAP (993)
-                                   ▼
-                          ┌────────────────────┐
-                          │   Mail Server      │
-                          │  (DMARC Reports)   │
-                          └────────────────────┘
-```
+**Analyse any domain, live.** Reads DMARC, SPF, DKIM, MX and BIMI straight from
+public DNS and grades the result out of 100. Nothing is sent to the domain and no
+mailbox access is needed, so it works on domains you do not own. Available without
+an account, from the landing page.
 
----
+**Collect the reports.** Mailbox providers send daily XML reports to whatever
+address a DMARC record names in `rua=`. Each organization points the dashboard at
+its own mailbox and reports are collected automatically, or uploaded by hand.
 
-## 🛠️ Tech Stack
+**See what was actually sent.** The dashboard aggregates those reports: volume,
+authentication pass rates, which sources send as your domains, and which of them
+fail.
 
-| Layer | Technology |
-|-------|-----------|
-| **Backend** | Java 17, Spring Boot 3.3, Spring Data JPA, Spring Security |
-| **Frontend** | React 19, Vite 8, React Router 7, Recharts 3, Lucide Icons |
-| **Database** | H2 (development) / PostgreSQL (production) |
-| **Authentication** | JWT (HMAC-SHA256) + BCrypt |
-| **DNS Resolution** | dnsjava (live DNS lookups) |
-| **Email** | Jakarta Mail (IMAP with SSL) |
-| **API Docs** | Springdoc OpenAPI (Swagger UI) |
+Two things it deliberately keeps apart, because they answer different questions. The
+**analysis** says whether a domain *can* be spoofed. The **dashboard** says what was
+*actually sent*. A domain can score perfectly and still show failures — that means
+the configuration is sound but a legitimate sender is missing from it.
 
----
+## Screens
 
-## 🚀 Quick Start
+| | |
+|---|---|
+| **Landing** | Public. Explains DMARC and offers a free domain check. |
+| **Dashboard** | Traffic from the collected reports, plus each domain's configuration posture. |
+| **Reports** | Every stored report, filterable, exportable as CSV or branded PDF. |
+| **Alerts** | Volume spikes, failure rates, and findings raised by analyses. |
+| **Analysis** | Run a check, see the grade with its breakdown, and what to fix first. |
+| **Admin** | Per organization: invitations, claimed domains, accounts, report intake. |
+| **Settings** | Profile, password, two-step verification, what your role may do, deployment facts. |
+| **Platform** | For whoever runs the service: every organization in counts and health, plus direct database access. |
 
-### Prerequisites
+## Multi-tenancy
 
-- **Java** JDK 17+
-- **Maven** 3.8+ (or use the included `mvnw` wrapper)
-- **Node.js** 18+
-- **npm** 9+
+Every account belongs to an **organization**, and every read is scoped to it.
+Reports, analyses, alerts, invitations and mailbox credentials are separated —
+colleagues share a workspace, nobody else sees it.
 
-### 1. Clone the Repository
+Two ways to join one, both deliberate:
+
+- **Invitation** — an emailed single-use link, valid seven days, revocable before
+  it is used.
+- **Verified email domain** — publish a TXT record proving you own `example.com`,
+  and anyone signing up with an address there joins automatically instead of
+  creating a second organization carrying the same company name.
+
+## Getting started
+
+**Requirements** — Java 17+, Node 20+, MariaDB or MySQL (a stock XAMPP works).
 
 ```bash
+# 1. Clone and create the database
 git clone https://github.com/Sultan-zd/dmarc-web-dashboard.git
 cd dmarc-web-dashboard
-```
+mysql -u root -e "CREATE DATABASE dmarc_dashboard CHARACTER SET utf8mb4"
 
-### 2. Start the Backend
-
-```bash
+# 2. Backend — http://localhost:8000
 cd backend
-./mvnw spring-boot:run           # Linux/macOS
-mvnw.cmd spring-boot:run         # Windows
-```
+./mvnw spring-boot:run
 
-The API server starts on `http://localhost:8000`.
-
-### 3. Start the Frontend
-
-```bash
+# 3. Frontend — http://localhost:5173
 cd frontend
 npm install
 npm run dev
 ```
 
-The dashboard is accessible at `http://localhost:5173`.
+The first start creates an administrator account and prints its generated password
+**once**, in the log. Sign in with it and change it immediately.
 
-### 4. Login
+Local secrets belong in `backend/config/application.properties`, which is
+gitignored. Copy [`backend/config.example.properties`](backend/config.example.properties)
+as a starting point.
 
-| Role | Username | Password |
-|------|----------|----------|
-| Admin | `admin` | `Admin@Dmarc2024!` |
+## Going online
 
-> Additional users can be created from the Admin panel.
+Development runs two ports. `go-online.ps1` builds the interface into the backend so
+a single port serves both — one origin, no CORS, one tunnel — generates a persistent
+signing key, and sets the public address that emailed links point at:
 
----
-
-## ⚙️ Configuration
-
-All backend settings are in `backend/src/main/resources/application.properties`:
-
-```properties
-# Server
-server.port=8000
-
-# Database (H2 - Development)
-spring.datasource.url=jdbc:h2:file:./data/dmarc_dashboard
-spring.datasource.username=sa
-spring.datasource.password=
-
-# JWT Authentication
-app.jwt.secret=YOUR_SECRET_KEY_MIN_256_BITS
-app.jwt.expiration-ms=3600000
-
-# IMAP (DMARC Report Inbox)
-app.imap.server=imap.example.com
-app.imap.port=993
-app.imap.username=dmarcreports@example.com
-app.imap.password=your_password
-app.imap.use-ssl=true
-app.imap.polling-interval-minutes=15
-
-# Alert Thresholds
-app.alert.failure-rate-threshold=0.3
-app.alert.spike-multiplier=2.0
-
-# CORS
-app.cors.origins=http://localhost:5173,http://localhost:3000
+```powershell
+.\go-online.ps1 -PublicUrl https://your-address.example.com
 ```
 
-<details>
-<summary><strong>🐘 PostgreSQL (Production)</strong></summary>
+## Configuration
 
-Replace the H2 database settings with:
+Everything is an environment variable, with defaults suited to local work.
 
-```properties
-spring.datasource.url=jdbc:postgresql://localhost:5432/dmarc_db
-spring.datasource.driver-class-name=org.postgresql.Driver
-spring.datasource.username=postgres
-spring.datasource.password=your_secure_password
-spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+| Variable | Purpose |
+|---|---|
+| `DB_URL` · `DB_USERNAME` · `DB_PASSWORD` | Database connection |
+| `DB_DDL_AUTO` | `update` while building, `validate` in production |
+| `JWT_SECRET` | Token signing key. Unset ⇒ generated at startup, so sessions die on restart |
+| `SECRETS_KEY` | Encrypts stored mailbox passwords. Unset ⇒ they cannot be stored at all |
+| `PUBLIC_URL` | The address emailed links point at |
+| `MAIL_HOST` · `MAIL_PORT` · `MAIL_USERNAME` · `MAIL_PASSWORD` · `MAIL_FROM` | Outgoing mail |
+| `PLATFORM_OPERATORS` | Usernames that also operate the service |
+| `APP_CORS_ORIGINS` | Extra allowed origins; the application's own is always allowed |
+| `APP_TRUST_PROXY_HEADERS` | `true` behind a proxy you control |
+| `ADMIN_USERNAME` · `ADMIN_PASSWORD` · `ADMIN_EMAIL` | The first account, created only on an empty database |
+
+## Security
+
+- Passwords are BCrypt-hashed. Mailbox passwords are AES-GCM **encrypted** rather
+  than hashed, because IMAP needs them back — and the application refuses to store
+  one at all when no key is configured.
+- **Two-step verification**: TOTP (RFC 6238), ten single-use recovery codes, and a
+  challenge token that cannot itself open a session.
+- **Roles enforced at the API**, not merely hidden in the interface: Administrator,
+  Analyst, Viewer.
+- **Hardened parsing** — XXE disabled, decompression bounded, archive entries capped.
+- **Rate limiting** on sign-in, sign-up and the public scanner.
+
+## Tests
+
+```bash
+cd backend && ./mvnw test
 ```
 
-</details>
+183 tests, run against an in-memory database that the build forces on every one of
+them — a suite able to reach a real database is a suite able to destroy it.
 
----
+The ones worth knowing about: tenant isolation across reports, analyses and
+mailboxes; the published scoring model held to what the engine actually awards; TOTP
+checked against RFC 6238's own test vectors; and SQL-injection attempts through the
+database console's table names.
 
-## 📁 Project Structure
+## Licence
 
-```
-├── backend/                          # Spring Boot API (Java 17)
-│   ├── src/main/java/com/teknologiia/dmarc/
-│   │   ├── config/                   # CORS & Security configuration
-│   │   ├── controller/               # REST endpoints
-│   │   ├── dto/                      # Request/Response DTOs (Java records)
-│   │   ├── model/                    # JPA entities
-│   │   ├── repository/              # Spring Data JPA repositories
-│   │   ├── security/                # JWT provider & auth filter
-│   │   └── service/                 # Business logic (IMAP, parser, DNS)
-│   ├── src/main/resources/
-│   │   └── application.properties
-│   └── pom.xml
-│
-├── frontend/                         # React SPA
-│   ├── src/
-│   │   ├── components/              # Reusable UI components
-│   │   ├── context/                 # Auth context (JWT state)
-│   │   ├── pages/                   # Page views (Dashboard, Reports, etc.)
-│   │   ├── services/                # API client (fetch + JWT)
-│   │   ├── App.jsx                  # Router configuration
-│   │   └── index.css                # Global styles
-│   ├── vite.config.js
-│   └── package.json
-│
-├── GUIDE_COMPLET.md                  # Full technical documentation
-└── README.md
-```
-
----
-
-## 🔌 API Endpoints
-
-Interactive API docs available at: `http://localhost:8000/api/docs`
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/auth/login` | Authenticate and receive JWT token |
-| `GET` | `/api/auth/me` | Get current user profile |
-| `GET` | `/api/stats/overview` | Dashboard KPIs |
-| `GET` | `/api/stats/timeline` | Email volume over time |
-| `GET` | `/api/stats/top-senders` | Top sender IPs by volume |
-| `GET` | `/api/reports` | List reports (paginated, filterable) |
-| `GET` | `/api/reports/:id` | Report detail with auth records |
-| `GET` | `/api/alerts` | List security alerts |
-| `PATCH` | `/api/alerts/:id/read` | Mark alert as read |
-| `POST` | `/api/analysis/domain` | Analyze domain DNS security |
-| `GET` | `/api/analysis/history` | Past analysis results |
-| `POST` | `/api/admin/ingest` | Trigger manual IMAP ingestion |
-| `GET` | `/api/admin/users` | List all users |
-| `POST` | `/api/admin/users` | Create new user |
-
----
-
-## 📖 Documentation
-
-For a complete technical guide covering architecture deep dives, scoring algorithms, security details, production deployment, and troubleshooting, see the **[Full Project Guide](GUIDE_COMPLET.md)**.
-
----
-
-## 🚢 Production Deployment
-
-1. **Migrate to PostgreSQL** — H2 is for development only
-2. **Build the frontend**: `cd frontend && npm run build`
-3. **Build the backend**: `cd backend && ./mvnw clean package -DskipTests`
-4. **Run**: `java -jar target/dmarc-dashboard-*.jar`
-5. **Serve** the `frontend/dist/` via Nginx with API proxy
-
-See the [Full Guide](GUIDE_COMPLET.md#-11-production-deployment) for detailed Nginx, Docker, and security checklist.
-
----
-
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
-
----
-
-<p align="center">
-  Built with ❤️ by <strong>Teknologiia</strong>
-</p>
+[MIT](LICENSE)

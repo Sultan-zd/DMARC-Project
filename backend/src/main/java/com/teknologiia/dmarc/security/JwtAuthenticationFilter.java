@@ -31,7 +31,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String jwt = getJwtFromRequest(request);
 
-            if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
+            // A challenge token is signed by the same key and would otherwise pass
+            // validateToken — which would make it a bearer token and let anyone who
+            // knows a password skip the second factor entirely. Only the second
+            // sign-in stage may exchange one.
+            if (StringUtils.hasText(jwt)
+                    && tokenProvider.validateToken(jwt)
+                    && !tokenProvider.isChallengeToken(jwt)) {
                 String username = tokenProvider.getUsernameFromToken(jwt);
 
                 UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);

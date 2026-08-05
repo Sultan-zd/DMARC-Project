@@ -1,0 +1,468 @@
+/* ─── Settings Page ─── */
+.settings-page {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.settings-header {
+  margin-bottom: 2rem;
+}
+
+.settings-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem 0;
+}
+
+.settings-header .subtitle {
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* Two columns: the account on the left, what it may do and what it runs on to
+   the right. A single narrow column left two thirds of the page empty. */
+.settings-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.settings-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settings-card {
+  padding: 1.75rem;
+}
+
+.settings-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.settings-card-title svg {
+  color: var(--accent-primary);
+}
+
+/* ─── Profile ─── */
+.profile-info {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.profile-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.profile-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.field-value {
+  font-size: 1rem;
+  color: var(--text-primary);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.field-value svg {
+  color: var(--text-muted);
+}
+
+.role-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  width: fit-content;
+}
+
+/* Ranked by reach, in brand colours: the purple and blue left over from the
+   original theme belonged to no palette this site uses. */
+.role-admin {
+  background: var(--accent-glow);
+  color: var(--accent-secondary);
+  border: 1px solid var(--accent-primary);
+}
+
+.role-analyst {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-primary);
+}
+
+.role-viewer {
+  background: rgba(100, 116, 139, 0.1);
+  color: var(--text-muted);
+  border: 1px solid rgba(100, 116, 139, 0.2);
+}
+
+/* ─── Theme Toggle ─── */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.setting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.setting-label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.setting-description {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.theme-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.toggle-track {
+  display: flex;
+  align-items: center;
+  width: 52px;
+  height: 28px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-primary);
+  border-radius: 14px;
+  padding: 2px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.theme-toggle.active .toggle-track {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.toggle-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggle-thumb svg {
+  color: var(--text-muted);
+}
+
+.theme-toggle.active .toggle-thumb {
+  transform: translateX(24px);
+}
+
+.theme-toggle.active .toggle-thumb svg {
+  color: var(--accent-primary);
+}
+
+/* ─── About ─── */
+.about-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.about-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.about-row:last-child {
+  border-bottom: none;
+}
+
+.about-label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.about-value {
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.version-badge {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 640px) {
+  .profile-info {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .profile-field {
+    align-items: center;
+  }
+
+  .setting-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}
+
+/* ─── Shared copy ─── */
+
+.settings-description {
+  margin: -0.5rem 0 1.25rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.settings-note {
+  margin: 1.1rem 0 0;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border-primary);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.settings-error {
+  padding: 0.65rem 0.85rem;
+  background: var(--danger-bg);
+  border-left: 3px solid var(--danger);
+  border-radius: var(--radius-sm);
+  font-size: 0.84rem;
+  color: var(--danger);
+}
+
+/* ─── Password ─── */
+
+.password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.field-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field-block > span {
+  font-size: 0.79rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* PasswordField was built for the dark sign-in card; on a light settings card it
+   needs the page's own input colours rather than the card's. */
+.password-form .input-group input {
+  background: var(--bg-input);
+  border: 1px solid var(--border-primary);
+  color: var(--text-primary);
+}
+
+.password-form .input-group input::placeholder {
+  color: var(--text-muted);
+}
+
+.password-form .input-icon,
+.password-form .password-toggle {
+  color: var(--text-muted);
+}
+
+.password-form .btn {
+  align-self: flex-start;
+}
+
+/* ─── Permissions ─── */
+
+.permission-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.permission-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.permission-list li svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.permission-list li.allowed { color: var(--text-primary); }
+.permission-list li.allowed svg { color: var(--success); }
+
+.permission-list li.denied { color: var(--text-muted); }
+.permission-list li.denied svg { color: var(--text-muted); }
+
+/* ─── System facts ─── */
+
+.system-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.system-list > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.system-list > div:last-child {
+  border-bottom: none;
+}
+
+.system-list dt {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.system-list dd {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: right;
+  color: var(--text-primary);
+}
+
+.system-list dd.mono {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 0.78rem;
+  word-break: break-word;
+}
+
+/* ─── Pre-publication warnings ─── */
+
+.deployment-warnings {
+  margin-top: 1.25rem;
+  padding: 1rem 1.1rem;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-md);
+}
+
+.deployment-warnings h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.6rem;
+  font-size: 0.83rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--warning);
+}
+
+.deployment-warnings p {
+  margin: 0 0 0.6rem;
+  font-size: 0.81rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.deployment-warnings p:last-child {
+  margin-bottom: 0;
+}
+
+.deployment-warnings strong {
+  color: var(--text-primary);
+}
+
+.deployment-warnings code {
+  padding: 0.05rem 0.3rem;
+  background: var(--bg-card);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}

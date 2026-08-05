@@ -50,3 +50,14 @@ pnpm-debug.log*
 
 # ==================== PDF / Large Binary ====================
 *.pdf
+
+# Local secrets. Spring Boot reads ./config/ ahead of the packaged
+# application.properties, so real credentials live here and never in the file that
+# is tracked. An app password for a mailbox is a working credential for that
+# mailbox — it belongs nowhere a repository can reach.
+backend/config/
+
+# Build output: the compiled dashboard is copied here so one process serves both.
+# It is generated from frontend/, so tracking it would commit the same code twice
+# and guarantee the two drift apart.
+backend/src/main/resources/static/

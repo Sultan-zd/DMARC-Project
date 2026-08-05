@@ -1,0 +1,212 @@
+.two-factor-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.85rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.two-factor-state.on {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.two-factor-state.off {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+}
+
+.two-factor-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+/* The .btn family has no danger variant, so "Turn off" would have rendered
+   unstyled — an irreversible action looking like plain text. */
+.two-factor-card .btn-danger {
+  background: var(--danger);
+  border: 1px solid var(--danger);
+  color: #ffffff;
+}
+
+.two-factor-card .btn-danger:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+.btn-text-danger {
+  background: none;
+  border: none;
+  padding: 0.5rem 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--danger);
+  cursor: pointer;
+}
+
+.btn-text-danger:hover {
+  text-decoration: underline;
+}
+
+.disable-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.disable-form input {
+  padding: 0.55rem 0.7rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.88rem;
+}
+
+/* ─── How many ways back in are left ─── */
+
+.recovery-count {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  font-size: 0.83rem;
+  color: var(--text-secondary);
+}
+
+/* Running out is only a problem at the moment the phone is already gone. */
+.recovery-count.low {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.recovery-count strong {
+  color: inherit;
+}
+
+/* ─── Enrolment ─── */
+
+.enrolment-steps {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+}
+
+.enrolment-steps li {
+  padding-left: 0.3rem;
+}
+
+.enrolment-steps strong {
+  display: block;
+  font-size: 0.92rem;
+  color: var(--text-primary);
+}
+
+.enrolment-steps > li > span {
+  display: block;
+  margin: 0.2rem 0 0.8rem;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+/* White plate behind the QR: readers need light quiet zones, and in dark mode the
+   card surface would swallow them. */
+.enrolment-steps img {
+  display: block;
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+}
+
+.manual-entry {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.manual-entry summary {
+  cursor: pointer;
+}
+
+.manual-entry code {
+  display: block;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  background: var(--tek-ink);
+  color: #E6EAE8;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  word-break: break-all;
+}
+
+.enrolment-steps form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.enrolment-code {
+  width: 8.5rem;
+  padding: 0.55rem 0.7rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  letter-spacing: 0.25em;
+  text-align: center;
+}
+
+/* ─── The codes, shown once ─── */
+
+.recovery-codes h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.6rem;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.recovery-codes p {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.recovery-codes ul {
+  list-style: none;
+  margin: 0;
+  padding: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.5rem 1rem;
+  background: var(--bg-secondary);
+  border: 1px dashed var(--border-primary);
+  border-radius: var(--radius-md);
+}
+
+.recovery-codes li {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  letter-spacing: 0.06em;
+  color: var(--text-primary);
+}

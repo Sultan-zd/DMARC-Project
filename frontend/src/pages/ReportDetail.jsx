@@ -3,9 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Shield, ShieldCheck, ShieldAlert, Info } from 'lucide-react';
 import * as api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import usePageTitle from '../hooks/usePageTitle';
 import './ReportDetail.css';
 
 const ReportDetail = () => {
+  usePageTitle('Report Details');
   const { id } = useParams();
   const navigate = useNavigate();
   const { token } = useAuth();

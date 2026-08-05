@@ -15,6 +15,11 @@ public class Alert {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Tenant owner. Alerts are never shown or bulk-updated across organizations. */
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "organization_id", nullable = false)
+    private Organization organization;
+
     @Column(name = "alert_type", nullable = false, length = 50)
     private String alertType;
 
