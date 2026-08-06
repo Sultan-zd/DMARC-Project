@@ -101,9 +101,38 @@ services:
       # themselves.
       PLATFORM_OPERATORS: ${PLATFORM_OPERATORS:-}
 
+      # ── Backups ───────────────────────────────────────────────────
+      # The database volume is one disk fault away from being no copies at all.
+      # The application dumps to this directory on a schedule and reports the age
+      # of the newest one on the Platform page — backups rarely fail loudly, they
+      # stop, and a schedule nobody can see the results of stops silently.
+      BACKUP_DIR: ${BACKUP_DIR:-/backups}
+      BACKUP_KEEP: ${BACKUP_KEEP:-14}
+      BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-24}
+
       JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=75.0}
+
+    volumes:
+      # A separate volume from the database on purpose. Backups that live on the
+      # same volume as the thing they protect are not backups — one `down -v`, one
+      # corrupt filesystem, and both go together. Copy them off the machine
+      # periodically: this survives the database, not the host.
+      - backups:/backups
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+    depends_on:
+      - db
 
 volumes:
   # Named, so `docker compose down` keeps the data and only `down -v` destroys it.
-  # There are no backups: treat that volume as the only copy, because it is.
   db-data:
+
+  # Where the dumps land. Also destroyed by `down -v`, which is why the point of
+  # the download button on the Platform page is to get one somewhere else.
+  backups:

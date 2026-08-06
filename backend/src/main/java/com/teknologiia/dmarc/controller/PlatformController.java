@@ -1,19 +1,29 @@
 package com.teknologiia.dmarc.controller;
 
 import com.teknologiia.dmarc.dto.platform.AuditPage;
+import com.teknologiia.dmarc.dto.platform.BackupStatus;
 import com.teknologiia.dmarc.dto.platform.PlatformOverview;
 import com.teknologiia.dmarc.dto.platform.TenantDetail;
 import com.teknologiia.dmarc.security.AuthenticatedUser;
 import com.teknologiia.dmarc.security.PlatformAccess;
 import com.teknologiia.dmarc.service.MailboxPoller;
+import com.teknologiia.dmarc.service.AuditAction;
 import com.teknologiia.dmarc.service.AuditService;
+import com.teknologiia.dmarc.service.BackupService;
 import com.teknologiia.dmarc.service.PlatformService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Map;
 
 /**
@@ -34,6 +44,7 @@ public class PlatformController {
     private final PlatformAccess platformAccess;
     private final MailboxPoller mailboxPoller;
     private final AuditService auditService;
+    private final BackupService backupService;
 
     @GetMapping("/overview")
     public PlatformOverview overview(@AuthenticationPrincipal AuthenticatedUser caller) {
@@ -101,6 +112,49 @@ public class PlatformController {
                            @RequestParam(name = "page_size", defaultValue = "25") int pageSize) {
         requireOperator(caller);
         return auditService.search(actor, action, days, page, pageSize);
+    }
+
+    // ─── Backups ────────────────────────────────────────────────────
+
+    /** Where the backups stand, including how old the newest one is. */
+    @GetMapping("/backups")
+    public BackupStatus backups(@AuthenticationPrincipal AuthenticatedUser caller) {
+        requireOperator(caller);
+        return backupService.status();
+    }
+
+    /** Takes one now, without waiting for the schedule. */
+    @PostMapping("/backups")
+    public Map<String, String> takeBackup(@AuthenticationPrincipal AuthenticatedUser caller) {
+        requireOperator(caller);
+        var written = backupService.run(caller.getUsername());
+        return Map.of("detail", "Backup written: " + written.getFileName());
+    }
+
+    /**
+     * Downloads one.
+     *
+     * <p>A dump is the whole database in a single file — every password hash, every
+     * encrypted mailbox credential, every tenant's reports. Getting a copy off the
+     * machine is exactly what a backup is for, and it is also the largest single
+     * disclosure this application can perform, so it is recorded before the bytes
+     * start moving.
+     */
+    @GetMapping("/backups/{name}")
+    public ResponseEntity<Resource> downloadBackup(@AuthenticationPrincipal AuthenticatedUser caller,
+                                                   @PathVariable String name) throws IOException {
+        requireOperator(caller);
+        var file = backupService.find(name);
+
+        auditService.record(caller.getUsername(), AuditAction.BACKUP_DOWNLOADED,
+                AuditAction.TARGET_BACKUP, null, name,
+                BackupService.humanBytes(Files.size(file)));
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + name + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentLength(Files.size(file))
+                .body(new FileSystemResource(file));
     }
 
     /** Removes an organization, refused unless it holds nothing at all. */

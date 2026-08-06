@@ -67,7 +67,12 @@ public class DomainAnalysisService {
      */
     public DomainAnalysisResponse analyzeDomain(String domain, String username,
                                                 Organization organization) {
-        return analyzeDomain(domain, username, organization, true);
+        return analyzeDomain(domain, username, organization, true, null);
+    }
+
+    public DomainAnalysisResponse analyzeDomain(String domain, String username,
+                                                Organization organization, boolean raiseAlerts) {
+        return analyzeDomain(domain, username, organization, raiseAlerts, null);
     }
 
     /**
@@ -76,7 +81,8 @@ public class DomainAnalysisService {
      *                    an unrelated domain should not generate alerts for the team.
      */
     public DomainAnalysisResponse analyzeDomain(String domain, String username,
-                                                Organization organization, boolean raiseAlerts) {
+                                                Organization organization, boolean raiseAlerts,
+                                                String suppliedSelector) {
         log.info("Starting DNS analysis for domain: {}", domain);
 
         List<DnsRecordResult> records = new ArrayList<>();
@@ -85,12 +91,12 @@ public class DomainAnalysisService {
 
         // Selectors this organization has actually observed for the domain, taken from
         // its own aggregate reports. Empty for anonymous scans, which have no tenant.
-        List<String> knownDkimSelectors = organization == null
-                ? List.of()
-                : recordRepository.findKnownDkimSelectors(organization.getId(), domain);
+        List<String> knownDkimSelectors = knownDkimSelectors(
+                suppliedSelector,
+                organization == null ? List.of()
+                        : recordRepository.findKnownDkimSelectors(organization.getId(), domain));
         if (!knownDkimSelectors.isEmpty()) {
-            log.debug("Trying {} DKIM selector(s) observed in stored reports for {}",
-                    knownDkimSelectors.size(), domain);
+            log.debug("Trying {} known DKIM selector(s) for {}", knownDkimSelectors.size(), domain);
         }
 
         // 1. Analyse DMARC
@@ -330,6 +336,56 @@ public class DomainAnalysisService {
     }
 
     /**
+     * The selectors that are not guesses, in the order they are worth trying.
+     *
+     * <p>Two sources, and both are evidence rather than hope. One the caller typed:
+     * they are telling us what signs their mail, which is the single thing DNS
+     * cannot be asked. One from this organization's own aggregate reports: mail was
+     * actually signed with those at some point, so they exist.
+     *
+     * <p>Pure, and package-private, so the ordering can be tested without DNS.
+     */
+    static List<String> knownDkimSelectors(String supplied, List<String> fromReports) {
+        List<String> known = new ArrayList<>();
+
+        if (supplied != null && !supplied.isBlank()) {
+            known.add(supplied.trim().toLowerCase(Locale.ROOT));
+        }
+        for (String seen : fromReports) {
+            if (seen != null && !seen.isBlank()) {
+                String normalised = seen.trim().toLowerCase(Locale.ROOT);
+                if (!known.contains(normalised)) {
+                    known.add(normalised);
+                }
+            }
+        }
+        return known;
+    }
+
+    /**
+     * The answer when nothing resolved.
+     *
+     * <p>Pure and package-private for the same reason: what this says is a claim
+     * about what the product knows, and it should be possible to hold it to that
+     * without a network.
+     */
+    static DnsRecordResult dkimIndeterminate(List<String> candidates, List<String> known) {
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("selectorsChecked", candidates.size());
+        detail.put("selectorsTried", candidates);
+        if (!known.isEmpty()) {
+            detail.put("selectorsFromReports", known);
+        }
+
+        return new DnsRecordResult("DKIM", "indeterminate", null, detail,
+                "No DKIM key answered under any of the " + candidates.size() + " selector "
+                        + "names tried. This is not the same as having no DKIM: selectors "
+                        + "cannot be listed from DNS, so a key under a name not tried here "
+                        + "is invisible to this check. If you know your selector, enter it "
+                        + "above and run the analysis again.");
+    }
+
+    /**
      * Looks for a DKIM key.
      *
      * <p>DKIM selectors cannot be enumerated from DNS — the only way to find one is
@@ -377,11 +433,7 @@ public class DomainAnalysisService {
         // "indeterminate", not "not_found": failing to guess a selector is not
         // evidence that DKIM is absent. google.com signs with date-based selectors
         // that no fixed list can predict, and scoring that as a failure was wrong.
-        return new DnsRecordResult("DKIM", "indeterminate", null,
-                Map.of("selectorsChecked", candidates.size()),
-                "No DKIM key found under " + candidates.size() + " common selectors. "
-                        + "Selectors cannot be listed from DNS, so DKIM may still be active "
-                        + "under a name not tried here.");
+        return dkimIndeterminate(candidates, knownSelectors);
     }
 
     private DnsRecordResult lookupMx(String domain) {

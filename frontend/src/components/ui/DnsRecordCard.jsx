@@ -6,12 +6,18 @@ const DnsRecordCard = ({ type, status, rawRecord, parsed, summary }) => {
   const [expanded, setExpanded] = useState(false);
 
   const statusConfig = {
-    found: { icon: CheckCircle, color: 'success', className: 'success' },
-    pass: { icon: CheckCircle, color: 'success', className: 'success' },
-    error: { icon: XCircle, color: 'danger', className: 'danger' },
-    fail: { icon: XCircle, color: 'danger', className: 'danger' },
-    warning: { icon: AlertTriangle, color: 'warning', className: 'warning' },
-    not_found: { icon: HelpCircle, color: 'muted', className: 'muted' },
+    found: { icon: CheckCircle, color: 'success', className: 'success', label: 'Found' },
+    pass: { icon: CheckCircle, color: 'success', className: 'success', label: 'Pass' },
+    error: { icon: XCircle, color: 'danger', className: 'danger', label: 'Error' },
+    fail: { icon: XCircle, color: 'danger', className: 'danger', label: 'Fail' },
+    warning: { icon: AlertTriangle, color: 'warning', className: 'warning', label: 'Warning' },
+    not_found: { icon: HelpCircle, color: 'muted', className: 'muted', label: 'Not found' },
+    // Its own state, and the reason this map gained labels at all. Falling back to
+    // not_found made "we could not tell" look identical to "there is nothing there"
+    // — which threw away the one distinction the DKIM check takes care to make.
+    indeterminate: {
+      icon: HelpCircle, color: 'muted', className: 'indeterminate', label: 'Could not determine',
+    },
   };
 
   const config = statusConfig[status] || statusConfig.not_found;
@@ -19,6 +25,9 @@ const DnsRecordCard = ({ type, status, rawRecord, parsed, summary }) => {
 
   const formatKey = (key) => {
     const keyMap = {
+      selectorsChecked: 'Selectors tried',
+      selectorsTried: 'Names tried',
+      selectorsFromReports: 'Seen in your reports',
       keySizeBits: 'Key Size',
       hasPublicKey: 'Has Public Key',
       v: 'Version',
@@ -39,6 +48,16 @@ const DnsRecordCard = ({ type, status, rawRecord, parsed, summary }) => {
   };
 
   const renderValue = (key, value) => {
+    // The names themselves, not a count. "Checked 12 selectors" invites the reader
+    // to conclude there is no key; the list makes it obvious theirs may simply not
+    // be on it.
+    if (Array.isArray(value)) {
+      return (
+        <span className="dns-selector-list">
+          {value.map((item) => <code key={item}>{item}</code>)}
+        </span>
+      );
+    }
     if (key === 'keySizeBits') {
       return `${value} bits`;
     }
@@ -62,15 +81,31 @@ const DnsRecordCard = ({ type, status, rawRecord, parsed, summary }) => {
         <div className="dns-record-title">
           <Icon className={`dns-record-status ${config.className}`} size={24} />
           <h3>{type}</h3>
+          <span className={`dns-record-badge ${config.className}`}>{config.label}</span>
         </div>
         <button className="dns-record-toggle">
           {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
         </button>
       </div>
-      
+
       <div className="dns-record-summary">
         {summary}
       </div>
+
+      {/* Said on the card rather than only in the expanded detail. Somebody who
+          reads "no key found" and closes the page has been misinformed, and the
+          whole point of the indeterminate state is that they should not be. */}
+      {status === 'indeterminate' && (
+        <p className="dns-record-caveat">
+          <HelpCircle size={14} />
+          <span>
+            <strong>This is not a finding of absence.</strong> DKIM selectors cannot
+            be listed from DNS — a key can only be found by guessing its name. A
+            domain signed under a name not tried here looks exactly like one that
+            does not sign at all. Nothing was deducted for this.
+          </span>
+        </p>
+      )}
 
       {expanded && (
         <div className="dns-record-details">

@@ -524,3 +524,64 @@
     border: 1px solid currentColor !important;
   }
 }
+
+
+/* ─── The DKIM selector box ─── */
+
+/* Below the domain form rather than beside it: it is not needed for most checks,
+   and a second field on the main line makes the page look like it wants two
+   answers before it will do anything. */
+.selector-hint {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-primary);
+}
+
+.selector-hint label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.selector-hint label svg { color: var(--accent-primary); }
+
+.selector-hint label span {
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.selector-input {
+  display: block;
+  width: 100%;
+  max-width: 22rem;
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.83rem;
+  color: var(--text-primary);
+}
+
+.selector-input:focus { outline: none; border-color: var(--accent-primary); }
+
+.selector-hint p {
+  max-width: 76ch;
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.selector-hint code {
+  padding: 0.05rem 0.3rem;
+  background: var(--bg-secondary);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}

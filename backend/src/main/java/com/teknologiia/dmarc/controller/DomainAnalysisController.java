@@ -29,7 +29,8 @@ public class DomainAnalysisController {
         // reach that team's alert feed.
         return domainAnalysisService.analyzeDomain(
                 request.domain(), caller.getUsername(),
-                organizationRepository.getReferenceById(caller.getOrganizationId()));
+                organizationRepository.getReferenceById(caller.getOrganizationId()),
+                true, request.dkimSelector());
     }
 
     @GetMapping("/history")

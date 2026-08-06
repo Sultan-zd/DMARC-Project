@@ -13,7 +13,7 @@ import { canEdit } from '../utils/roles';
 import usePageTitle from '../hooks/usePageTitle';
 import * as api from '../services/api';
 import {
-  Search, Globe, RefreshCw, AlertTriangle, Info, CheckCircle, Printer, Clock, Lock,
+  Search, Globe, RefreshCw, AlertTriangle, Info, CheckCircle, Printer, Clock, Lock, KeyRound,
 } from 'lucide-react';
 import './DomainAnalysis.css';
 
@@ -34,6 +34,7 @@ const DomainAnalysis = () => {
   const { setSelectedDomain } = useDomain();
 
   const [domain, setDomain] = useState('');
+  const [dkimSelector, setDkimSelector] = useState('');
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -76,7 +77,7 @@ const DomainAnalysis = () => {
     setError('');
     setResults(null);
     try {
-      const data = await api.analyzeDomain(token, value);
+      const data = await api.analyzeDomain(token, value, dkimSelector.trim());
       setResults(data);
       setDomain(value);
       setSelectedDomain(value);
@@ -161,6 +162,32 @@ const DomainAnalysis = () => {
               : <><Search size={20} /> Analyse</>}
           </button>
         </form>
+
+        {/* The one input that turns a guess into an answer. DNS offers no way to
+            list selectors, so a domain signed under an uncommon name reports
+            "could not determine" however long the guess list gets — but the person
+            running the check usually knows the name. */}
+        <div className="selector-hint">
+          <label htmlFor="dkim-selector">
+            <KeyRound size={14} /> DKIM selector <span>optional</span>
+          </label>
+          <input
+            id="dkim-selector"
+            type="text"
+            className="selector-input"
+            placeholder="e.g. selector1, google, k1"
+            value={dkimSelector}
+            onChange={(e) => setDkimSelector(e.target.value)}
+            disabled={loading || !mayAnalyse}
+          />
+          <p>
+            Selectors cannot be listed from DNS — a key is only found by asking for
+            its name. Leave this empty and common names are tried; if none answers,
+            the result says so rather than claiming there is no key. Yours appears in
+            the <code>s=</code> field of a <code>DKIM-Signature</code> header on any
+            message you have sent.
+          </p>
+        </div>
 
         {!mayAnalyse && (
           <p className="search-locked">

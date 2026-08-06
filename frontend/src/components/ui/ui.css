@@ -199,6 +199,60 @@
 .dns-record-status.danger { color: var(--danger); }
 .dns-record-status.warning { color: var(--warning); }
 .dns-record-status.muted { color: var(--text-muted); }
+.dns-record-status.indeterminate { color: var(--accent-primary); }
+
+/* Its own colour, deliberately not the muted grey of "not found". The two states
+   mean different things and looked identical, which is the defect this fixes. */
+.dns-record-card.indeterminate { border-left-color: var(--accent-primary); }
+
+.dns-record-badge {
+  padding: 0.1rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dns-record-badge.success { background: var(--success-bg); color: var(--success); }
+.dns-record-badge.danger { background: var(--danger-bg); color: var(--danger); }
+.dns-record-badge.warning { background: var(--warning-bg); color: var(--warning); }
+.dns-record-badge.muted { background: var(--bg-secondary); color: var(--text-muted); }
+.dns-record-badge.indeterminate { background: var(--accent-glow); color: var(--accent-secondary); }
+
+/* On the card, not hidden behind the expander: somebody who reads "no key found"
+   and closes the page has been misinformed. */
+.dns-record-caveat {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  padding: 0.7rem 0.85rem;
+  background: var(--accent-glow);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.dns-record-caveat svg { flex-shrink: 0; margin-top: 0.15rem; color: var(--accent-primary); }
+.dns-record-caveat strong { color: var(--text-primary); }
+
+.dns-selector-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.dns-selector-list code {
+  padding: 0.05rem 0.35rem;
+  background: var(--bg-secondary);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
 
 .dns-record-toggle {
   background: none;

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Building2, Users, FileText, Search, Inbox, Server, AlertTriangle, ShieldCheck,
-  RefreshCw, Loader2, Database, Clock, Lock, Activity, CheckCircle2, Terminal, ScrollText,
+  RefreshCw, Loader2, Database, Clock, Lock, Activity, CheckCircle2, Terminal, ScrollText, HardDriveDownload,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -9,6 +9,7 @@ import usePageTitle from '../hooks/usePageTitle';
 import TenantExplorer from '../components/platform/TenantExplorer';
 import DatabaseConsole from '../components/platform/DatabaseConsole';
 import AuditTrail from '../components/platform/AuditTrail';
+import BackupPanel from '../components/platform/BackupPanel';
 import * as api from '../services/api';
 import './Platform.css';
 
@@ -329,11 +330,15 @@ const Platform = () => {
       <h2 className="platform-section-title"><Building2 size={15} /> Tenants</h2>
       <TenantExplorer currentUsername={user?.username} onChange={load} />
 
-      {/* ── 4. Who did what ── */}
+      {/* ── 4. Is there a second copy ── */}
+      <h2 className="platform-section-title"><HardDriveDownload size={15} /> Backups</h2>
+      <BackupPanel />
+
+      {/* ── 5. Who did what ── */}
       <h2 className="platform-section-title"><ScrollText size={15} /> Accountability</h2>
       <AuditTrail />
 
-      {/* ── 5. What is underneath ── */}
+      {/* ── 6. What is underneath ── */}
       <h2 className="platform-section-title"><Database size={15} /> Storage</h2>
       <DatabaseConsole />
     </div>

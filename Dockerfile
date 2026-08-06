@@ -72,9 +72,20 @@ FROM eclipse-temurin:17-jre-alpine
 ENV TZ=UTC \
     JAVA_OPTS="-XX:MaxRAMPercentage=75.0"
 
-# Nothing here needs to write outside /tmp, and a process that cannot write to its
-# own installation cannot be made to overwrite it.
-RUN addgroup -S dmarc && adduser -S -G dmarc -h /app dmarc
+# mariadb-client, for one reason: the application takes its own backups.
+#
+# The alternative was a sidecar container running mariadb-dump on a cron. That is
+# tidier in principle and worse in practice — the failure mode of backups is not
+# "nobody set them up", it is "they stopped four months ago and nobody noticed".
+# Taking them from inside the application means the Platform page can say when the
+# last one ran and go red when it did not, which is the part that actually keeps
+# them working.
+RUN apk add --no-cache mariadb-client
+
+# Nothing here needs to write outside /tmp and the backup directory, and a process
+# that cannot write to its own installation cannot be made to overwrite it.
+RUN addgroup -S dmarc && adduser -S -G dmarc -h /app dmarc \
+    && mkdir -p /backups && chown dmarc:dmarc /backups
 
 WORKDIR /app
 COPY --from=backend --chown=dmarc:dmarc /build/backend/target/dmarc-*.jar /app/app.jar

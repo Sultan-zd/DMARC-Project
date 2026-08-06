@@ -345,6 +345,28 @@ export async function setPlatformAccountActive(token, id, active) {
 }
 
 /** Refused unless the organization holds nothing at all. */
+/** Where the backups stand: how many, how old, and whether that is acceptable. */
+export async function getBackupStatus(token) {
+  return request('/platform/backups', { token });
+}
+
+/** Takes one now rather than waiting for the schedule. */
+export async function runBackup(token) {
+  return request('/platform/backups', { token, method: 'POST' });
+}
+
+/**
+ * Downloads a dump.
+ *
+ * Fetched rather than linked because the endpoint needs the bearer token, which an
+ * anchor cannot carry. Resolves with a Blob for the caller to save.
+ */
+export async function downloadBackup(token, name) {
+  return request(`/platform/backups/${encodeURIComponent(name)}`, {
+    token, isDownload: true,
+  });
+}
+
 /** Who did what, filtered. Operator only. */
 export async function getAuditTrail(token, params = {}) {
   const query = new URLSearchParams(
@@ -496,8 +518,19 @@ export async function getPublicScan(domain) {
   return body;
 }
 
-export async function analyzeDomain(token, domain) {
-  return request('/analysis/domain', { token, method: 'POST', body: JSON.stringify({ domain }) });
+/**
+ * Runs a live DNS check.
+ *
+ * @param dkimSelector optional. DKIM selectors cannot be listed from DNS, so a key
+ *   is only found by guessing its name — naming yours is the difference between
+ *   "we could not tell" and an answer.
+ */
+export async function analyzeDomain(token, domain, dkimSelector) {
+  return request('/analysis/domain', {
+    token,
+    method: 'POST',
+    body: JSON.stringify({ domain, dkimSelector: dkimSelector || undefined }),
+  });
 }
 
 export async function getAnalysisHistory(token, params = {}) {

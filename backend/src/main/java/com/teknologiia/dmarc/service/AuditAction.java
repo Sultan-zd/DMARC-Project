@@ -36,6 +36,11 @@ public final class AuditAction {
     public static final String DATABASE_TABLE_CLEARED = "DATABASE_TABLE_CLEARED";
     public static final String DATABASE_SECRETS_REVEALED = "DATABASE_SECRETS_REVEALED";
 
+    // ── Backups ──
+    public static final String BACKUP_TAKEN = "BACKUP_TAKEN";
+    public static final String BACKUP_FAILED = "BACKUP_FAILED";
+    public static final String BACKUP_DOWNLOADED = "BACKUP_DOWNLOADED";
+
     // ── Report intake ──
     public static final String MAILBOX_SAVED = "MAILBOX_SAVED";
     public static final String MAILBOX_DELETED = "MAILBOX_DELETED";
@@ -45,4 +50,5 @@ public final class AuditAction {
     public static final String TARGET_ORGANIZATION = "ORGANIZATION";
     public static final String TARGET_TABLE = "TABLE";
     public static final String TARGET_MAILBOX = "MAILBOX";
+    public static final String TARGET_BACKUP = "BACKUP";
 }

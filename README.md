@@ -11,7 +11,7 @@ Built for [Teknologiia](https://www.teknologiia.com).
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-compose-2496ED?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-249%20passing-success)
+![Tests](https://img.shields.io/badge/tests-277%20passing-success)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 ---
@@ -22,6 +22,11 @@ Built for [Teknologiia](https://www.teknologiia.com).
 public DNS and grades the result out of 100. Nothing is sent to the domain and no
 mailbox access is needed, so it works on domains you do not own. Available without
 an account, from the landing page.
+
+DKIM is the one control DNS cannot be asked about directly: selectors are not
+listable, so a key is only found by guessing its name. When none of the guesses
+answers, the result says **could not determine** rather than "no key", nothing is
+deducted, and the names tried are shown — you can also just name your selector.
 
 **Collect the reports.** Mailbox providers send daily XML reports to whatever
 address a DMARC record names in `rua=`. Each organization points the dashboard at
@@ -90,12 +95,25 @@ docker compose logs app | grep -A3 "Generated password"
 | `docker compose down` | Stop, keeping the data |
 | `docker compose down -v` | Stop and **destroy the database** |
 
-The database volume is the only copy of your data and nothing backs it up. Before
-`down -v`, and periodically after that:
+### Backups
+
+The application dumps the database to a separate volume on a schedule, and the
+**Platform** page shows how old the newest one is — going red when it stops, which
+is the failure that actually happens. Take one now or download one from there.
+
+They are still on the same host, so get a copy somewhere else:
 
 ```bash
 docker compose exec db mariadb-dump -u root -p"$DB_ROOT_PASSWORD" dmarc_dashboard > backup.sql
 ```
+
+Restoring, which is worth doing once against a throwaway database before you need it:
+
+```bash
+gunzip -c dmarc-backup-....sql.gz | docker compose exec -T db   mariadb -u root -p"$DB_ROOT_PASSWORD" dmarc_dashboard
+```
+
+> `docker compose down -v` destroys both volumes — the database *and* its backups.
 
 ### Without Docker
 
@@ -168,6 +186,7 @@ Everything is an environment variable, with defaults suited to local work.
 | `PUBLIC_URL` | The address emailed links point at |
 | `MAIL_HOST` · `MAIL_PORT` · `MAIL_USERNAME` · `MAIL_PASSWORD` · `MAIL_FROM` | Outgoing mail |
 | `PASSWORD_RESET_TTL_MINUTES` | How long a reset link lasts. 60 by default |
+| `BACKUP_DIR` · `BACKUP_KEEP` · `BACKUP_INTERVAL_HOURS` | Where dumps go, how many to keep, how often. Empty ⇒ no backups |
 | `PLATFORM_OPERATORS` | Usernames that also operate the service |
 | `APP_CORS_ORIGINS` | Extra allowed origins; the application's own is always allowed |
 | `APP_TRUST_PROXY_HEADERS` | `true` behind a proxy you control |
@@ -187,6 +206,8 @@ Everything is an environment variable, with defaults suited to local work.
   account carries the instant its sessions were invalidated and older tokens are
   refused. Moved by a password change, a reset, a disable, or *sign out everywhere*
   — and an operator can end anyone's without disabling the account.
+- **Scheduled backups**, with the age of the newest one on the operator's page and
+  a download that is recorded. A dump is the whole database in one file.
 - **An audit trail in a table, not a log file.** Who created, disabled, deleted or
   demoted an account; who removed an organization; who emptied a table or revealed a
   credential column. Filterable by actor, action and period.
@@ -201,7 +222,7 @@ Everything is an environment variable, with defaults suited to local work.
 cd backend && ./mvnw test
 ```
 
-249 tests, run against an in-memory database that the build forces on every one of
+277 tests, run against an in-memory database that the build forces on every one of
 them — a suite able to reach a real database is a suite able to destroy it.
 
 The ones worth knowing about: tenant isolation across reports, analyses and
