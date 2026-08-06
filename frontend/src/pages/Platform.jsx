@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Building2, Users, FileText, Search, Inbox, Server, AlertTriangle, ShieldCheck,
-  RefreshCw, Loader2, Database, Clock, Lock,
+  RefreshCw, Loader2, Database, Clock, Lock, Activity, CheckCircle2, Terminal,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -28,14 +28,58 @@ const when = (value) =>
   }) : '—';
 
 /**
+ * Deployment settings still carrying a development value.
+ *
+ * <p>Ordered by what it costs to leave alone, not by where it appears in the
+ * configuration file. A tenant receiving no reports is losing data now; a signing
+ * key that resets on restart is an inconvenience until someone reads the log. A
+ * list that treats those as equal is a list that gets skimmed.
+ */
+const deploymentChecks = (r) => [
+  !r.secretsKeyConfigured && {
+    severity: 'critical',
+    title: 'No encryption key.',
+    detail: 'Mailbox passwords cannot be stored at all, so no organization can have '
+      + 'reports collected automatically.',
+    fix: 'SECRETS_KEY',
+  },
+  !r.mailConfigured && {
+    severity: 'critical',
+    title: 'No mail host.',
+    detail: 'Confirmation and invitation links are written to the log instead of being '
+      + 'sent, so nobody can complete a sign-up.',
+    fix: 'MAIL_HOST',
+  },
+  r.publicUrl?.includes('localhost') && {
+    severity: 'critical',
+    title: 'The public address is still localhost.',
+    detail: 'Every emailed link points at this machine and works nowhere else.',
+    fix: 'PUBLIC_URL',
+  },
+  !r.jwtSecretConfigured && {
+    severity: 'warning',
+    title: 'No signing key.',
+    detail: 'A throwaway is generated at startup, so every session ends when the process '
+      + 'restarts — and it is printed in the log, where it can be used to forge a token.',
+    fix: 'JWT_SECRET',
+  },
+  r.schemaAutoUpdate && {
+    severity: 'warning',
+    title: 'The schema updates itself.',
+    detail: 'Hibernate may alter live tables at startup. A mistyped entity rewrites real '
+      + 'data with nobody approving it.',
+    fix: 'DB_DDL_AUTO=validate',
+  },
+].filter(Boolean);
+
+/**
  * The console for whoever runs the service, not for whoever runs one organization
  * inside it.
  *
- * There is a line this page does not cross. It reports that a tenant holds four
- * hundred reports; it never shows what is in them. An aggregate report names every
- * IP address sending as a domain, and keeping tenants apart is the product's main
- * promise — a console that quietly exempted the operator would make that promise
- * conditional on trust rather than on design.
+ * <p>Three questions, in the order they get asked: is anything wrong, how much is
+ * here, and who is it for. The database sits last because it is the only part that
+ * can destroy something — reaching it should take a deliberate scroll past
+ * everything that answers the question without it.
  */
 const Platform = () => {
   usePageTitle('Platform');
@@ -45,12 +89,18 @@ const Platform = () => {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [collecting, setCollecting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshedAt, setRefreshedAt] = useState(null);
 
   const load = useCallback(async () => {
+    setRefreshing(true);
     try {
       setData(await api.getPlatformOverview(token));
+      setRefreshedAt(new Date());
     } catch (err) {
       setError(err.message);
+    } finally {
+      setRefreshing(false);
     }
   }, [token]);
 
@@ -91,42 +141,91 @@ const Platform = () => {
 
   const r = data.runtime;
   const peak = Math.max(1, ...data.signupsByDay.map((d) => d.count));
-
-  const checks = [
-    !r.jwtSecretConfigured && 'JWT_SECRET is unset — sessions end at every restart.',
-    !r.secretsKeyConfigured && 'SECRETS_KEY is unset — mailbox passwords cannot be stored.',
-    r.schemaAutoUpdate && 'The schema updates itself — set DB_DDL_AUTO=validate.',
-    !r.mailConfigured && 'No mail host — confirmation links go to the log, not to people.',
-    r.publicUrl?.includes('localhost') && 'PUBLIC_URL still points at localhost — emailed links work nowhere else.',
-  ].filter(Boolean);
+  const checks = deploymentChecks(r);
+  const critical = checks.filter((c) => c.severity === 'critical').length;
+  const healthy = checks.length === 0 && data.mailboxesFailing === 0;
 
   return (
     <div className="platform-page">
-      <div className="platform-header">
-        <div>
+      <header className="platform-header">
+        <div className="platform-identity">
+          <span className="platform-eyebrow"><Terminal size={13} /> Operator console</span>
           <h1>Platform</h1>
-          <p>Every organization on this deployment, in counts and health.</p>
+          <p>
+            Every organization on this deployment, in counts and health — and the
+            schema underneath them.
+          </p>
         </div>
-        <button className="btn btn-secondary" onClick={load}>
-          <RefreshCw size={15} /> Refresh
-        </button>
-      </div>
 
-      {/* Things that need doing, before anything that is merely interesting. */}
-      {(checks.length > 0 || data.mailboxesFailing > 0) && (
-        <section className="platform-attention">
-          <h2><AlertTriangle size={16} /> Needs attention</h2>
+        <div className="platform-header-side">
+          <div className="platform-operator">
+            <span className="platform-operator-dot" />
+            <div>
+              <strong>{user.username}</strong>
+              <span>signed in as operator</span>
+            </div>
+          </div>
+          <button className="btn btn-secondary" onClick={load} disabled={refreshing}>
+            {refreshing
+              ? <><Loader2 size={15} className="spin" /> Reading…</>
+              : <><RefreshCw size={15} /> Refresh</>}
+          </button>
+          {refreshedAt && (
+            <span className="platform-refreshed">
+              Read at {refreshedAt.toLocaleTimeString('en-GB',
+                { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+          )}
+        </div>
+      </header>
+
+      {/* ── 1. Is anything wrong ── */}
+      {healthy ? (
+        <section className="platform-healthy">
+          <CheckCircle2 size={17} />
+          <div>
+            <strong>Nothing needs attention.</strong>
+            <span>
+              Every mailbox collected on its last run, and no deployment setting is
+              still carrying a development value.
+            </span>
+          </div>
+        </section>
+      ) : (
+        <section className={`platform-attention ${critical > 0 ? 'critical' : ''}`}>
+          <h2>
+            <AlertTriangle size={16} />
+            Needs attention
+            <span className="attention-count">
+              {checks.length + (data.mailboxesFailing > 0 ? 1 : 0)}
+            </span>
+          </h2>
+
           <ul>
             {data.mailboxesFailing > 0 && (
               <li className="urgent">
-                {data.mailboxesFailing} mailbox{data.mailboxesFailing === 1 ? '' : 'es'} failed
-                the last collection — those tenants are receiving nothing.
+                <strong>
+                  {data.mailboxesFailing} mailbox{data.mailboxesFailing === 1 ? '' : 'es'} failed
+                  the last collection.
+                </strong>
+                <span>
+                  Those organizations are receiving nothing and have no way of knowing
+                  it. Open the organization below to see which.
+                </span>
               </li>
             )}
-            {checks.map((c) => <li key={c}>{c}</li>)}
+            {checks.map((c) => (
+              <li key={c.title} className={c.severity}>
+                <strong>{c.title}</strong>
+                <span>{c.detail} Set <code>{c.fix}</code>.</span>
+              </li>
+            ))}
           </ul>
         </section>
       )}
+
+      {/* ── 2. How much is here ── */}
+      <h2 className="platform-section-title"><Activity size={15} /> This deployment</h2>
 
       <div className="platform-tiles">
         <article className="platform-tile">
@@ -225,10 +324,13 @@ const Platform = () => {
         </section>
       </div>
 
+      {/* ── 3. Who it is for ── */}
+      <h2 className="platform-section-title"><Building2 size={15} /> Tenants</h2>
       <TenantExplorer currentUsername={user?.username} onChange={load} />
 
+      {/* ── 4. What is underneath ── */}
+      <h2 className="platform-section-title"><Database size={15} /> Storage</h2>
       <DatabaseConsole />
-
     </div>
   );
 };

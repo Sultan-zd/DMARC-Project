@@ -61,9 +61,17 @@ public class SecurityConfig {
                         "/brand/**", "/*.png", "/*.svg", "/*.webmanifest").permitAll()
                 // Client-side routes: the SPA fallback answers these with the shell,
                 // and what the shell then shows is decided by the token it holds.
+                //
+                // Serving the shell grants nothing. A browser navigating here carries
+                // no Authorization header — the token lives in the page, not in a
+                // cookie — so without these entries reloading a signed-in page answers
+                // 403 with Spring's error shell rather than the application. Every
+                // route the router knows about needs a line here; /platform was missed
+                // and was therefore reachable by clicking but not by reloading.
                 .requestMatchers("/login", "/register", "/verify", "/invitation",
                         "/change-password", "/dashboard", "/reports", "/alerts",
-                        "/analysis", "/admin", "/settings", "/scan/**").permitAll()
+                        "/analysis", "/admin", "/settings", "/platform",
+                        "/scan/**").permitAll()
                 // ── Roles, enforced rather than merely labelled ──────────────
                 // Previously only /api/admin/** was restricted, which left ANALYST
                 // and VIEWER with identical permissions: a "read-only" account could

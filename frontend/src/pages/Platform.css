@@ -1,6 +1,9 @@
 .platform-page {
   padding: 2rem;
-  max-width: 1200px;
+  /* Wider than the tenant-facing pages: the database console is a two-pane
+     layout, and squeezing it to the reading width of an article costs the grid
+     the columns that make a row legible. */
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -8,22 +11,100 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  padding-bottom: 1.4rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.platform-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-primary);
 }
 
 .platform-header h1 {
-  margin: 0;
+  margin: 0.35rem 0 0;
   font-size: 2rem;
   font-weight: 700;
   color: var(--text-primary);
 }
 
 .platform-header p {
-  margin: 0.3rem 0 0;
+  max-width: 58ch;
+  margin: 0.35rem 0 0;
   font-size: 0.92rem;
+  line-height: 1.55;
   color: var(--text-secondary);
 }
+
+.platform-header-side {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* Whose console this is. A page that can empty a table should say who is holding
+   it — an unattended session is the realistic threat here, not a stolen one. */
+.platform-operator {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.85rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+}
+
+.platform-operator-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 3px var(--success-bg);
+}
+
+.platform-operator strong {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.platform-operator span {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.platform-refreshed {
+  width: 100%;
+  text-align: right;
+  font-size: 0.71rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Section headings ─── */
+
+.platform-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 2rem 0 0.9rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.platform-section-title svg { color: var(--accent-primary); }
 
 .platform-loading,
 .platform-empty {
@@ -48,51 +129,114 @@
 /* ─── What needs doing, before what is merely interesting ─── */
 
 .platform-attention {
-  margin-bottom: 1.5rem;
-  padding: 1.1rem 1.3rem;
+  padding: 1.15rem 1.35rem;
   background: var(--warning-bg);
   border: 1px solid var(--warning);
   border-radius: var(--radius-lg);
 }
 
+/* One unusable setting changes the colour of the whole panel: a deployment that
+   cannot send mail is not in the same category as one with a noisy log. */
+.platform-attention.critical {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+}
+
 .platform-attention h2 {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  margin: 0 0 0.6rem;
-  font-size: 0.83rem;
+  gap: 0.45rem;
+  margin: 0 0 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--warning);
 }
 
+.platform-attention.critical h2 { color: var(--danger); }
+
+.attention-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.3rem;
+  background: var(--warning);
+  border-radius: 10px;
+  font-size: 0.7rem;
+  color: #fff;
+}
+
+.platform-attention.critical .attention-count { background: var(--danger); }
+
 .platform-attention ul {
+  list-style: none;
   margin: 0;
-  padding-left: 1.1rem;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.7rem;
 }
 
 .platform-attention li {
-  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding-left: 0.8rem;
+  border-left: 2px solid var(--warning);
+  font-size: 0.84rem;
   line-height: 1.55;
   color: var(--text-secondary);
 }
 
+.platform-attention li strong { color: var(--text-primary); }
+
+.platform-attention li code {
+  padding: 0.05rem 0.3rem;
+  background: var(--bg-card);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
 /* A tenant receiving nothing outranks a configuration note. */
-.platform-attention li.urgent {
-  font-weight: 600;
-  color: var(--danger);
+.platform-attention li.urgent,
+.platform-attention li.critical { border-left-color: var(--danger); }
+.platform-attention li.urgent strong { color: var(--danger); }
+
+.platform-healthy {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 1rem 1.3rem;
+  background: var(--success-bg);
+  border: 1px solid var(--success);
+  border-radius: var(--radius-lg);
+}
+
+.platform-healthy svg { flex-shrink: 0; margin-top: 0.1rem; color: var(--success); }
+.platform-healthy strong { display: block; font-size: 0.9rem; color: var(--text-primary); }
+
+.platform-healthy span {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
 }
 
 /* ─── Tiles ─── */
 
+/* Three across, so six tiles make two full rows. Letting them auto-fit gave four
+   and two, and the gap beside the short row read as something failing to load. */
 .platform-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   margin-bottom: 1.5rem;
+}
+
+@media (max-width: 1100px) {
+  .platform-tiles { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
 }
 
 .platform-tile {
