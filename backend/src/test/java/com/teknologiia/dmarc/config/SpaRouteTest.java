@@ -1,16 +1,19 @@
 package com.teknologiia.dmarc.config;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * Every page the router knows about must survive being reloaded.
@@ -52,7 +55,7 @@ class SpaRouteTest {
     @ParameterizedTest
     @ValueSource(strings = {
             "/api/platform/overview",
-            "/api/database/tables",
+            "/api/platform/database/tables",
             "/api/admin/users",
             "/api/reports",
     })
@@ -65,5 +68,29 @@ class SpaRouteTest {
         assertThat(status)
                 .as("%s must not be readable without signing in", route)
                 .isIn(401, 403);
+    }
+
+    @Test
+    @WithMockUser(username = "someone", roles = "ADMIN")
+    @DisplayName("a mistyped API path is 404, not a server fault")
+    void unknownApiPathIsNotFound() throws Exception {
+        // The SPA fallback refuses to answer anything under /api with the HTML
+        // shell, which leaves the request unresolved. Unhandled, that reached the
+        // catch-all and reported 500 — a fault in the server for what is a fault in
+        // the request, with a stack trace in the log that looked like an outage.
+        //
+        // Signed in, because unauthenticated the security filter answers 403 first
+        // and never reaches a handler. That is the right order: someone with no
+        // session should not be able to map the API by watching which paths 404.
+        mockMvc.perform(get("/api/does/not/exist")).andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/database/tables")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("without a session, an unknown API path reveals nothing")
+    void unknownApiPathIsRefusedBeforeItIsResolved() throws Exception {
+        // The pair to the test above: 403 rather than 404, so the response is the
+        // same whether or not the endpoint exists.
+        mockMvc.perform(get("/api/does/not/exist")).andExpect(status().isForbidden());
     }
 }

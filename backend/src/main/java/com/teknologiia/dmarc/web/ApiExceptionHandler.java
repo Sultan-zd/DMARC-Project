@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Map;
 
@@ -80,6 +81,23 @@ public class ApiExceptionHandler {
 
         return ResponseEntity.badRequest()
                 .body(Map.of("detail", detail, "status", 400));
+    }
+
+    /**
+     * An address that does not exist.
+     *
+     * <p>SinglePageAppConfig deliberately refuses to answer anything under
+     * {@code /api} with the HTML shell, which leaves the request unresolved and
+     * raises this. Without handling it here it fell through to the catch-all below
+     * and a mistyped endpoint answered 500 — reporting a fault in the server for
+     * what is a fault in the request, and filling the log with stack traces that
+     * looked like an outage.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNotFound(NoResourceFoundException e) {
+        log.debug("No handler for {}", e.getResourcePath());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("detail", "No such endpoint.", "status", 404));
     }
 
     /**
