@@ -14,9 +14,6 @@ Built for [Teknologiia](https://www.teknologiia.com).
 ![Tests](https://img.shields.io/badge/tests-211%20passing-success)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
-> 📘 **[Guide complet (français)](COMPLETE_GUIDE.md)** — architecture, fonctionnement,
-> configuration et mise en ligne, expliqués de A à Z.
-
 ---
 
 ## What it does
@@ -79,7 +76,7 @@ cp .env.example .env        # then read it; every value has a working default
 docker compose up --build
 ```
 
-The dashboard is on **http://localhost:8000**, interface and API on one port. The
+The dashboard is on **http://localhost:7999**, interface and API on one port. The
 first start creates an administrator and prints its generated password **once**:
 
 ```bash
@@ -129,24 +126,34 @@ as a starting point.
 
 ## Going online
 
-Both routes below collapse the two development ports into one origin, so `/api`
-stops being a cross-origin call and a single address serves everything.
-
-**With Docker**, that is already the case — point a tunnel or a reverse proxy at
-port 8000 and set the address links are built from:
+The image already serves interface and API on one port, so there is one thing to
+put a reverse proxy in front of. On the server:
 
 ```bash
-PUBLIC_URL=https://dmarc.example.com   # in .env
-APP_TRUST_PROXY_HEADERS=true           # only behind a proxy you control
+git clone https://github.com/Sultan-zd/DMARC-Project.git
+cd DMARC-Project
+cp .env.example .env
+```
+
+Four values in `.env` decide whether the deployment actually works:
+
+```properties
+PUBLIC_URL=https://dmarc.example.com   # ← the one that breaks emails if wrong
+APP_TRUST_PROXY_HEADERS=true           # behind a proxy or CDN that sets X-Forwarded-For
+JWT_SECRET=<openssl rand -base64 48>   # else everyone is signed out on every restart
+SECRETS_KEY=<openssl rand -base64 32>  # else no mailbox can be stored at all
+```
+
+```bash
 docker compose up -d --build
 ```
 
-**Without Docker**, `go-online.ps1` builds the interface into the backend, generates
-a persistent signing key, and sets the same address:
+Then point the proxy at `APP_PORT` (7999 by default) and terminate TLS there.
 
-```powershell
-.\go-online.ps1 -PublicUrl https://your-address.example.com
-```
+> **`PUBLIC_URL` is not cosmetic.** Every confirmation and invitation link is built
+> from it. Left at localhost, the person receiving the mail gets a link to their own
+> machine — it looks correct and silently does nothing. The Platform page reports it
+> while it is still wrong.
 
 ## Configuration
 

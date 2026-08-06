@@ -32,7 +32,6 @@ backend/src/main/resources/static/
 # Documentation and scripts, none of which the application reads at runtime
 *.md
 LICENSE
-go-online.ps1
 docker-compose.yml
 Dockerfile
 .dockerignore
