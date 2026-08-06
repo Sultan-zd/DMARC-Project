@@ -1,0 +1,109 @@
+# The dashboard and its database, together.
+#
+#   cp .env.example .env     then edit it
+#   docker compose up --build
+#
+# The interface and the API are served by the same container on the same port, so
+# there is one thing to publish and one address to point a tunnel or a proxy at.
+
+services:
+
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root-change-me}
+      MARIADB_DATABASE: ${DB_NAME:-dmarc_dashboard}
+      MARIADB_USER: ${DB_USERNAME:-dmarc}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-dmarc-change-me}
+    # Report data carries every character set mail does. utf8mb4 is the one that
+    # holds all of it; MySQL's "utf8" is three bytes and silently truncates the rest.
+    # A list rather than a string, so nothing depends on how the arguments are split.
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - db-data:/var/lib/mysql
+    # Deliberately not published. The application reaches it over the compose
+    # network by name; publishing 3306 would expose it to the whole machine and,
+    # on a developer's laptop, collide with the MySQL that XAMPP already runs
+    # there. Add a ports entry temporarily if you need a client attached.
+    healthcheck:
+      # The image's own script, which waits for InnoDB rather than merely for the
+      # socket. A server accepting connections before recovery has finished will
+      # refuse the application's first queries.
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        # Not merely "started". Hibernate creates the schema on first run, and a
+        # database still initialising fails that outright rather than retrying.
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    environment:
+      # ── Database ──────────────────────────────────────────────────
+      DB_URL: "jdbc:mariadb://db:3306/${DB_NAME:-dmarc_dashboard}?useUnicode=true&characterEncoding=utf8"
+      DB_USERNAME: ${DB_USERNAME:-dmarc}
+      DB_PASSWORD: ${DB_PASSWORD:-dmarc-change-me}
+      # `update` lets Hibernate create the schema on an empty volume, which is what
+      # makes the first run work at all. Once the schema exists and matters, set
+      # this to `validate` in .env: it then refuses to start on a mismatch instead
+      # of altering live tables to match a mistyped entity.
+      DB_DDL_AUTO: ${DB_DDL_AUTO:-update}
+
+      # ── Keys ──────────────────────────────────────────────────────
+      # Both empty by default so a first run works without ceremony, and both
+      # reported on the Platform page until they are set. Unset JWT_SECRET means a
+      # throwaway key per start, so every session ends at every restart. Unset
+      # SECRETS_KEY means mailbox passwords cannot be stored at all — the
+      # application refuses rather than keeping them in clear.
+      JWT_SECRET: ${JWT_SECRET:-}
+      SECRETS_KEY: ${SECRETS_KEY:-}
+
+      # ── Addressing ────────────────────────────────────────────────
+      # What confirmation and invitation links are built from. Left at localhost,
+      # every link you send works on this machine and nowhere else.
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:8000}
+      # true only behind a proxy you control. Reachable directly, nothing writes
+      # X-Forwarded-For except the caller, and anyone could vary it to get a fresh
+      # rate-limit bucket.
+      APP_TRUST_PROXY_HEADERS: ${APP_TRUST_PROXY_HEADERS:-false}
+
+      # ── Outgoing mail ─────────────────────────────────────────────
+      # With no host, links are written to the log instead of being sent. Enough to
+      # try the application; nobody outside the server receives anything.
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Teknologiia DMARC}
+
+      # ── First account and operator console ────────────────────────
+      # Created only on an empty database. With no password set, a strong one is
+      # generated and printed once in the log:  docker compose logs app
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_ORGANIZATION: ${ADMIN_ORGANIZATION:-Teknologiia}
+      # Usernames that also see the service-wide console. Read from here and never
+      # from the database, so an organization administrator cannot grant it to
+      # themselves.
+      PLATFORM_OPERATORS: ${PLATFORM_OPERATORS:-}
+
+      JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=75.0}
+
+volumes:
+  # Named, so `docker compose down` keeps the data and only `down -v` destroys it.
+  # There are no backups: treat that volume as the only copy, because it is.
+  db-data:

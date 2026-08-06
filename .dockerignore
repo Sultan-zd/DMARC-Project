@@ -1,0 +1,43 @@
+# What never reaches the build context.
+#
+# The first entry is the one that matters. backend/config/ holds the real mailbox
+# app password and the key that decrypts every stored mailbox password. It is
+# excluded from git for that reason, and a Docker build would otherwise copy it
+# into an image layer — where it stays readable forever, even if a later layer
+# deletes it, and travels with the image to wherever it is pushed.
+backend/config/
+
+# Environment files. Compose reads these on the host and passes the values in as
+# variables; nothing inside the image ever opens them.
+.env
+*.env
+.env.example
+
+# Build output. The image builds its own; carrying a stale copy in would only
+# invalidate cache layers and risk shipping an interface older than the code.
+backend/target/
+backend/data/
+frontend/node_modules/
+frontend/dist/
+backend/src/main/resources/static/
+
+# History and tooling
+.git/
+.github/
+.gitignore
+.idea/
+.vscode/
+*.iml
+
+# Documentation and scripts, none of which the application reads at runtime
+*.md
+LICENSE
+go-online.ps1
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Noise
+*.log
+.DS_Store
+Thumbs.db

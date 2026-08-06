@@ -11,7 +11,7 @@ seul.
 
 1. [Le problème, et ce que le produit en fait](#1-le-problème-et-ce-que-le-produit-en-fait)
 2. [Architecture](#2-architecture)
-3. [Démarrer en local](#3-démarrer-en-local)
+3. [Démarrer en local — Docker ou installation manuelle](#3-démarrer-en-local)
 4. [Le modèle de données](#4-le-modèle-de-données)
 5. [L'isolation entre organisations](#5-lisolation-entre-organisations)
 6. [Comptes, connexion et rôles](#6-comptes-connexion-et-rôles)
@@ -128,11 +128,111 @@ sur des pages protégées.
 
 ## 3. Démarrer en local
 
-### Prérequis
+Deux chemins. Docker n'installe rien d'autre que Docker ; l'installation manuelle
+donne le rechargement à chaud pendant le développement.
 
-Java 17 ou plus, Node 20 ou plus, MariaDB ou MySQL.
+### A. Avec Docker
 
-### Trois commandes
+**Prérequis :** Docker Desktop uniquement. Ni Java, ni Node, ni base de données.
+
+```bash
+cp .env.example .env        # puis le lire : chaque valeur a un défaut qui marche
+docker compose up --build
+```
+
+Le tableau de bord est sur **http://localhost:8000** — interface et API sur le même
+port. Le mot de passe du premier administrateur est dans le log :
+
+```bash
+docker compose logs app | grep -A3 "Generated password"
+```
+
+| Commande | Effet |
+|---|---|
+| `docker compose up -d` | Démarre en arrière-plan |
+| `docker compose logs -f app` | Suit le log de l'application |
+| `docker compose down` | Arrête, **garde** les données |
+| `docker compose down -v` | Arrête et **détruit la base** |
+
+#### Ce que fait l'image
+
+Le [`Dockerfile`](Dockerfile) a trois étages, et chacun existe pour une raison
+précise :
+
+| Étage | Base | Ce qu'il produit |
+|---|---|---|
+| `frontend` | `node:20-alpine` | L'interface compilée, écrite dans les ressources du backend |
+| `backend` | `maven:3.9-eclipse-temurin-17` | Le jar exécutable, interface incluse |
+| *(final)* | `eclipse-temurin:17-jre-alpine` | Le jar et un JRE. Rien d'autre |
+
+Trois décisions valent d'être expliquées :
+
+**Un seul port.** Vite écrit sa sortie dans
+`backend/src/main/resources/static`, donc le jar sert l'interface *et* l'API. Un
+seul port à publier, une seule origine, et `/api` cesse d'être un appel
+cross-origin — ce qui supprime toute la question CORS en production.
+
+**Un JRE, pas un JDK.** Le compilateur, le débogueur et le reste de la chaîne
+d'outils n'ont rien à faire dans un conteneur qui tourne, et chacun d'eux est à
+portée de main de ce qui parviendrait à entrer.
+
+**Un utilisateur non privilégié.** Le processus tourne en tant que `dmarc` et
+n'écrit nulle part en dehors de `/tmp`. Un processus qui ne peut pas écrire dans sa
+propre installation ne peut pas être amené à l'écraser.
+
+#### Ce que le contexte de build ne voit jamais
+
+Le [`.dockerignore`](.dockerignore) commence par `backend/config/`, et c'est
+l'entrée qui compte. Ce répertoire contient le mot de passe d'application de la
+boîte mail et la clé qui déchiffre tous les mots de passe de boîtes stockés. Sans
+cette ligne, ils seraient copiés dans une couche de l'image — où ils restent
+lisibles pour toujours, **même si une couche ultérieure les supprime**, et où ils
+voyagent avec l'image partout où elle est poussée.
+
+#### Les deux clés
+
+Elles ont chacune un défaut vide pour qu'un premier lancement fonctionne sans
+cérémonie, et la page Platform les signale tant qu'elles ne sont pas posées.
+
+```bash
+openssl rand -base64 48     # JWT_SECRET
+openssl rand -base64 32     # SECRETS_KEY
+```
+
+- **`JWT_SECRET` absent** : une clé jetable est générée à chaque démarrage, donc
+  tout le monde est déconnecté à chaque redémarrage du conteneur — et elle est
+  écrite dans le log, où quiconque la lit peut forger un jeton pour n'importe quel
+  compte.
+- **`SECRETS_KEY` absent** : l'application **refuse** de stocker un mot de passe de
+  boîte mail plutôt que de le garder en clair. Aucune organisation ne peut donc
+  faire collecter ses rapports automatiquement.
+
+#### La base, et la seule copie qui existe
+
+Le volume `db-data` est nommé, donc `docker compose down` le conserve et seul
+`down -v` le détruit. **Rien ne le sauvegarde.** Traiter ce volume comme la seule
+copie des données, parce que c'en est une :
+
+```bash
+docker compose exec db mariadb-dump -u root -p"$DB_ROOT_PASSWORD" dmarc_dashboard > backup.sql
+```
+
+Le port 3306 n'est délibérément **pas publié**. L'application joint la base par son
+nom sur le réseau Compose ; le publier l'exposerait à toute la machine et, sur un
+poste de développement, entrerait en collision avec le MySQL que XAMPP y fait déjà
+tourner.
+
+`DB_DDL_AUTO` vaut `update` par défaut : c'est ce qui permet à Hibernate de créer
+le schéma sur un volume vide, donc ce qui fait marcher le premier lancement. Une
+fois le schéma en place et les données réelles, passer à `validate` dans `.env` —
+l'application refuse alors de démarrer sur un désaccord au lieu de modifier des
+tables vivantes pour coller à une entité mal tapée.
+
+### B. Sans Docker
+
+**Prérequis :** Java 17 ou plus, Node 20 ou plus, MariaDB ou MySQL.
+
+#### Trois commandes
 
 ```bash
 # 1. La base
@@ -150,11 +250,23 @@ npm run dev
 
 Le schéma est créé par Hibernate au premier démarrage (`DB_DDL_AUTO=update`).
 
+#### Les secrets locaux
+
+Ils vont dans `backend/config/application.properties`, ignoré par git. Spring Boot lit
+ce répertoire **avant** le fichier packagé et fusionne clé par clé : seuls les
+réglages qui y figurent sont surchargés.
+
+Partir de [`backend/config.example.properties`](backend/config.example.properties).
+
+> ⚠️ Le backend doit être lancé **depuis le répertoire `backend`** pour que ce fichier
+> soit pris en compte. En conteneur ce fichier n'existe pas : tout passe par des
+> variables d'environnement, lues depuis `.env`.
+
 ### Le premier compte
 
-Au tout premier démarrage — et **seulement quand la base ne contient aucun compte** —
-un administrateur est créé, et son mot de passe généré est affiché **une seule fois**
-dans le log :
+Quel que soit le chemin choisi, au tout premier démarrage — et **seulement quand la
+base ne contient aucun compte** — un administrateur est créé, et son mot de passe
+généré est affiché **une seule fois** dans le log :
 
 ```
 ============================================================
@@ -167,17 +279,6 @@ dans le log :
 La condition « aucun compte » compte. La version précédente vérifiait l'existence du
 nom `admin` : supprimer ce compte le faisait donc réapparaître au redémarrage suivant,
 avec un nouveau mot de passe dans le log que personne n'attendait.
-
-### Les secrets locaux
-
-Ils vont dans `backend/config/application.properties`, ignoré par git. Spring Boot lit
-ce répertoire **avant** le fichier packagé et fusionne clé par clé : seuls les
-réglages qui y figurent sont surchargés.
-
-Partir de [`backend/config.example.properties`](backend/config.example.properties).
-
-> ⚠️ Le backend doit être lancé **depuis le répertoire `backend`** pour que ce fichier
-> soit pris en compte.
 
 ---
 
@@ -712,7 +813,46 @@ ADMIN_ORGANIZATION=
 ### Le principe
 
 En développement, deux ports. Un tunnel gratuit n'en expose qu'un. La solution :
-construire l'interface **dans** le backend.
+construire l'interface **dans** le backend. Les deux chemins ci-dessous font
+exactement cela.
+
+### A. Par conteneur
+
+C'est déjà le cas dans l'image : il n'y a qu'un port à exposer. Sur un serveur avec
+Docker installé :
+
+```bash
+git clone https://github.com/Sultan-zd/DMARC-Project.git
+cd DMARC-Project
+cp .env.example .env
+```
+
+Trois valeurs à poser dans `.env` avant d'exposer quoi que ce soit :
+
+```properties
+PUBLIC_URL=https://dmarc.example.com   # l'adresse que les gens tapent réellement
+APP_TRUST_PROXY_HEADERS=true           # uniquement derrière un proxy que vous contrôlez
+JWT_SECRET=<openssl rand -base64 48>   # sinon tout le monde est déconnecté à chaque redémarrage
+SECRETS_KEY=<openssl rand -base64 32>  # sinon aucune boîte mail ne peut être enregistrée
+```
+
+```bash
+docker compose up -d --build
+```
+
+Puis un proxy inverse devant le port 8000 pour le TLS — Caddy, nginx, Traefik — ou
+un tunnel :
+
+```bash
+ngrok http 8000 --url votre-nom.ngrok-free.dev
+```
+
+> ⚠️ `APP_TRUST_PROXY_HEADERS=true` **uniquement** derrière un proxy qui écrit
+> lui-même `X-Forwarded-For`. Joignable directement, cet en-tête est ce que
+> l'appelant veut bien y mettre, et n'importe qui peut le faire varier pour obtenir
+> un compteur de limitation neuf à chaque tentative.
+
+### B. Sans conteneur
 
 ```powershell
 .\go-online.ps1 -PublicUrl https://votre-adresse.example.com
@@ -763,7 +903,7 @@ L'écran Settings affiche ces points tant qu'ils ne sont pas faits.
 cd backend && ./mvnw test
 ```
 
-**183 tests.** Ils tournent contre une base en mémoire, **imposée par le build à
+**211 tests.** Ils tournent contre une base en mémoire, **imposée par le build à
 chacun d'eux** via `spring.profiles.active=test` dans la configuration Surefire — une
 suite capable d'atteindre une vraie base est une suite capable de la détruire.
 
@@ -780,6 +920,8 @@ suite capable d'atteindre une vraie base est une suite capable de la détruire.
 | `AnalysisIsolationTest` | L'historique d'analyse ne traverse pas les organisations |
 | `ReportServiceFilterTest` | Les filtres et la pagination des rapports |
 | `DatabaseConsoleServiceTest` | Injection par nom de table, tables protégées |
+| `SchemaDictionaryTest` | Chaque colonne décrite existe encore, et dans le bon ordre |
+| `SpaRouteTest` | Chaque page survit à un rechargement du navigateur |
 | `VerificationTokenTest` | Les trois issues d'un lien d'activation |
 | `PasswordPolicyTest` | Chaque mot de passe généré satisfait la politique |
 | `PlatformAccessTest` | Un nom ressemblant n'approche pas le statut d'exploitant |
@@ -866,8 +1008,11 @@ deux portaient le même.
   certificat et un reverse proxy.
 - **Limitation de débit partagée** — le seau à jetons est en mémoire ; plusieurs
   instances demanderaient Redis.
-- **Docker** — un `docker-compose` réunissant application et base simplifierait
-  l'installation.
+- **Sauvegardes** — le volume `db-data` est la seule copie des données et rien ne le
+  sauvegarde. C'est le manque le plus coûteux de cette liste : une base perdue ne se
+  reconstitue pas.
+- **Migrations de schéma** — Hibernate crée et modifie les tables lui-même. Flyway ou
+  Liquibase rendrait chaque changement versionné et relu.
 - **Découpage du bundle** — près de 800 ko en un seul fichier JavaScript.
 - **Journal d'audit** — les actions d'exploitation sont tracées dans le log, pas dans
   une table consultable.

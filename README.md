@@ -10,7 +10,8 @@ Built for [Teknologiia](https://www.teknologiia.com).
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3-6DB33F?logo=springboot&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-183%20passing-success)
+![Docker](https://img.shields.io/badge/Docker-compose-2496ED?logo=docker&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-211%20passing-success)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 > 📘 **[Guide complet (français)](COMPLETE_GUIDE.md)** — architecture, fonctionnement,
@@ -49,7 +50,7 @@ the configuration is sound but a legitimate sender is missing from it.
 | **Analysis** | Run a check, see the grade with its breakdown, and what to fix first. |
 | **Admin** | Per organization: invitations, claimed domains, accounts, report intake. |
 | **Settings** | Profile, password, two-step verification, what your role may do, deployment facts. |
-| **Platform** | For whoever runs the service: every organization in counts and health, plus direct database access. |
+| **Platform** | For whoever runs the service: every organization in counts and health, plus a database console where each table and column carries what it is for. |
 
 ## Multi-tenancy
 
@@ -67,12 +68,46 @@ Two ways to join one, both deliberate:
 
 ## Getting started
 
+### With Docker
+
+Nothing to install but Docker itself — no Java, no Node, no database.
+
+```bash
+git clone https://github.com/Sultan-zd/DMARC-Project.git
+cd DMARC-Project
+cp .env.example .env        # then read it; every value has a working default
+docker compose up --build
+```
+
+The dashboard is on **http://localhost:8000**, interface and API on one port. The
+first start creates an administrator and prints its generated password **once**:
+
+```bash
+docker compose logs app | grep -A3 "Generated password"
+```
+
+| | |
+|---|---|
+| `docker compose up -d` | Start in the background |
+| `docker compose logs -f app` | Follow the application log |
+| `docker compose down` | Stop, keeping the data |
+| `docker compose down -v` | Stop and **destroy the database** |
+
+The database volume is the only copy of your data and nothing backs it up. Before
+`down -v`, and periodically after that:
+
+```bash
+docker compose exec db mariadb-dump -u root -p"$DB_ROOT_PASSWORD" dmarc_dashboard > backup.sql
+```
+
+### Without Docker
+
 **Requirements** — Java 17+, Node 20+, MariaDB or MySQL (a stock XAMPP works).
 
 ```bash
 # 1. Clone and create the database
-git clone https://github.com/Sultan-zd/dmarc-web-dashboard.git
-cd dmarc-web-dashboard
+git clone https://github.com/Sultan-zd/DMARC-Project.git
+cd DMARC-Project
 mysql -u root -e "CREATE DATABASE dmarc_dashboard CHARACTER SET utf8mb4"
 
 # 2. Backend — http://localhost:8000
@@ -94,9 +129,20 @@ as a starting point.
 
 ## Going online
 
-Development runs two ports. `go-online.ps1` builds the interface into the backend so
-a single port serves both — one origin, no CORS, one tunnel — generates a persistent
-signing key, and sets the public address that emailed links point at:
+Both routes below collapse the two development ports into one origin, so `/api`
+stops being a cross-origin call and a single address serves everything.
+
+**With Docker**, that is already the case — point a tunnel or a reverse proxy at
+port 8000 and set the address links are built from:
+
+```bash
+PUBLIC_URL=https://dmarc.example.com   # in .env
+APP_TRUST_PROXY_HEADERS=true           # only behind a proxy you control
+docker compose up -d --build
+```
+
+**Without Docker**, `go-online.ps1` builds the interface into the backend, generates
+a persistent signing key, and sets the same address:
 
 ```powershell
 .\go-online.ps1 -PublicUrl https://your-address.example.com
@@ -137,13 +183,15 @@ Everything is an environment variable, with defaults suited to local work.
 cd backend && ./mvnw test
 ```
 
-183 tests, run against an in-memory database that the build forces on every one of
+211 tests, run against an in-memory database that the build forces on every one of
 them — a suite able to reach a real database is a suite able to destroy it.
 
 The ones worth knowing about: tenant isolation across reports, analyses and
 mailboxes; the published scoring model held to what the engine actually awards; TOTP
-checked against RFC 6238's own test vectors; and SQL-injection attempts through the
-database console's table names.
+checked against RFC 6238's own test vectors; SQL-injection attempts through the
+database console's table names; the console's column descriptions held to the live
+schema, so a renamed column fails the build rather than losing its explanation; and
+every client-side route asserted to survive a reload.
 
 ## Licence
 
