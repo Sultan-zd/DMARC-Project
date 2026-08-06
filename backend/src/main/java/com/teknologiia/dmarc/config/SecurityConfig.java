@@ -48,6 +48,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/login/2fa").permitAll()
                 // Self-service sign-up and its email confirmation, both pre-authentication.
                 .requestMatchers("/api/auth/register", "/api/auth/verify").permitAll()
+                // Recovering a forgotten password cannot require being signed in —
+                // not being able to sign in is the situation. What stands in for a
+                // session is the emailed token, which only reaches the mailbox the
+                // account was registered with.
+                .requestMatchers("/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
                 .requestMatchers("/api/health").permitAll()
                 // Anonymous domain scanner. Rate limited and input-validated in
                 // PublicScanController; nothing here reads or writes user data.
@@ -69,7 +74,8 @@ public class SecurityConfig {
                 // route the router knows about needs a line here; /platform was missed
                 // and was therefore reachable by clicking but not by reloading.
                 .requestMatchers("/login", "/register", "/verify", "/invitation",
-                        "/change-password", "/dashboard", "/reports", "/alerts",
+                        "/change-password", "/forgot-password", "/reset-password",
+                        "/dashboard", "/reports", "/alerts",
                         "/analysis", "/admin", "/settings", "/platform",
                         "/scan/**").permitAll()
                 // ── Roles, enforced rather than merely labelled ──────────────

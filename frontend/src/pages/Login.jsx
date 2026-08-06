@@ -176,9 +176,16 @@ const Login = () => {
         )}
 
         {!mfaToken && (
-          <p className="register-switch">
-            No account yet? <Link to="/register">Create one</Link>
-          </p>
+          <>
+            {/* Under the form rather than beside the password field: someone who
+                needs it is not mid-typing, they have already failed once. */}
+            <p className="login-forgot">
+              <Link to="/forgot-password">Forgot your password?</Link>
+            </p>
+            <p className="register-switch">
+              No account yet? <Link to="/register">Create one</Link>
+            </p>
+          </>
         )}
       </div>
     </div>

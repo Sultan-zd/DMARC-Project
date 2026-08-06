@@ -1,7 +1,9 @@
 package com.teknologiia.dmarc.controller;
 
+import com.teknologiia.dmarc.dto.auth.ForgotPasswordRequest;
 import com.teknologiia.dmarc.dto.auth.LoginRequest;
 import com.teknologiia.dmarc.dto.auth.RegisterRequest;
+import com.teknologiia.dmarc.dto.auth.ResetPasswordRequest;
 import com.teknologiia.dmarc.dto.auth.TokenResponse;
 import com.teknologiia.dmarc.dto.auth.TwoFactorChallengeRequest;
 import com.teknologiia.dmarc.dto.auth.TwoFactorCodeRequest;
@@ -12,6 +14,7 @@ import com.teknologiia.dmarc.service.TwoFactorService;
 import com.teknologiia.dmarc.dto.user.PasswordChangeRequest;
 import com.teknologiia.dmarc.dto.user.UserResponse;
 import com.teknologiia.dmarc.service.AuthService;
+import com.teknologiia.dmarc.service.PasswordResetService;
 import com.teknologiia.dmarc.service.RegistrationService;
 import com.teknologiia.dmarc.service.UserService;
 import com.teknologiia.dmarc.web.ClientAddress;
@@ -44,8 +47,17 @@ public class AuthController {
     private static final int REGISTER_ATTEMPTS = 5;
     private static final double REGISTER_REFILL_PER_MINUTE = 1;
 
+    /**
+     * Tighter than the rest. Every accepted call sends a message to a mailbox whose
+     * owner may not have asked for anything, so an unbounded endpoint here is a way
+     * of using this server to pester somebody else.
+     */
+    private static final int RESET_ATTEMPTS = 4;
+    private static final double RESET_REFILL_PER_MINUTE = 0.5;
+
     private final AuthService authService;
     private final RegistrationService registrationService;
+    private final PasswordResetService passwordResetService;
     private final UserService userService;
     private final RateLimiter rateLimiter;
     private final TwoFactorService twoFactorService;
@@ -89,6 +101,46 @@ public class AuthController {
 
         registrationService.verify(token);
         return Map.of("detail", "Your account is now active. You can sign in.");
+    }
+
+    // ─── Forgotten passwords ────────────────────────────────────────
+
+    /**
+     * Sends a reset link to the address, if it belongs to an account.
+     *
+     * <p>Answers the same thing either way. Distinguishing them would make this a
+     * way of asking "does this person have an account here" for any address, with
+     * no session — and for a product whose customers are security teams, that list
+     * is worth having.
+     *
+     * <p>Kept tight on the allowance for the same reason it exists at all: each
+     * call can send mail to somebody who did not ask for it, so an unbounded
+     * endpoint is a way of using this server to pester a stranger.
+     */
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public Map<String, String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request,
+                                              HttpServletRequest http) {
+        guard("forgot:" + clientIp(http), RESET_ATTEMPTS, RESET_REFILL_PER_MINUTE,
+                "Too many reset requests. Try again in ");
+
+        passwordResetService.requestReset(request.email());
+
+        return Map.of("detail",
+                "If that address belongs to an account, a reset link is on its way. "
+                        + "It expires in an hour.");
+    }
+
+    /** Redeems a reset link. No current password: the token is what stands in for it. */
+    @PostMapping("/reset-password")
+    public Map<String, String> resetPassword(@Valid @RequestBody ResetPasswordRequest request,
+                                             HttpServletRequest http) {
+        guard("reset:" + clientIp(http), RESET_ATTEMPTS, RESET_REFILL_PER_MINUTE,
+                "Too many attempts. Try again in ");
+
+        passwordResetService.reset(request.token(), request.password());
+
+        return Map.of("detail", "Your password has been changed. You can sign in with it now.");
     }
 
     /** Applies an allowance, translating exhaustion into 429 with a Retry-After. */

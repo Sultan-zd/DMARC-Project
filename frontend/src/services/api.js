@@ -132,6 +132,46 @@ export async function register(payload) {
   return body;
 }
 
+/**
+ * Asks for a password reset link.
+ *
+ * Resolves the same way whether or not the address belongs to an account — the
+ * server deliberately refuses to distinguish them, so the interface must not
+ * pretend to know either.
+ */
+export async function requestPasswordReset(email) {
+  const response = await fetch(`${API_BASE}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(body.detail || 'Could not send a reset link. Try again.');
+    error.status = response.status;
+    throw error;
+  }
+  return body;
+}
+
+/** Redeems a reset link and sets the new password. No current password is asked for. */
+export async function resetPassword(token, password) {
+  const response = await fetch(`${API_BASE}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, password }),
+  });
+
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(body.detail || 'This reset link is not valid.');
+    error.status = response.status;
+    throw error;
+  }
+  return body;
+}
+
 /** Redeems the emailed verification token and activates the account. */
 export async function verifyEmail(token) {
   const response = await fetch(`${API_BASE}/auth/verify?token=${encodeURIComponent(token)}`);

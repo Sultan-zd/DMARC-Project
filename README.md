@@ -11,7 +11,7 @@ Built for [Teknologiia](https://www.teknologiia.com).
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-compose-2496ED?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-213%20passing-success)
+![Tests](https://img.shields.io/badge/tests-229%20passing-success)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 ---
@@ -167,6 +167,7 @@ Everything is an environment variable, with defaults suited to local work.
 | `SECRETS_KEY` | Encrypts stored mailbox passwords. Unset ⇒ they cannot be stored at all |
 | `PUBLIC_URL` | The address emailed links point at |
 | `MAIL_HOST` · `MAIL_PORT` · `MAIL_USERNAME` · `MAIL_PASSWORD` · `MAIL_FROM` | Outgoing mail |
+| `PASSWORD_RESET_TTL_MINUTES` | How long a reset link lasts. 60 by default |
 | `PLATFORM_OPERATORS` | Usernames that also operate the service |
 | `APP_CORS_ORIGINS` | Extra allowed origins; the application's own is always allowed |
 | `APP_TRUST_PROXY_HEADERS` | `true` behind a proxy you control |
@@ -179,10 +180,13 @@ Everything is an environment variable, with defaults suited to local work.
   one at all when no key is configured.
 - **Two-step verification**: TOTP (RFC 6238), ten single-use recovery codes, and a
   challenge token that cannot itself open a session.
+- **Password reset by email** — single-use, one hour, and asking for a new link
+  spends the old one. The endpoint answers identically whether or not the address is
+  registered, so it cannot be used to ask who has an account here.
 - **Roles enforced at the API**, not merely hidden in the interface: Administrator,
   Analyst, Viewer.
 - **Hardened parsing** — XXE disabled, decompression bounded, archive entries capped.
-- **Rate limiting** on sign-in, sign-up and the public scanner.
+- **Rate limiting** on sign-in, sign-up, password reset and the public scanner.
 
 ## Tests
 
@@ -190,15 +194,17 @@ Everything is an environment variable, with defaults suited to local work.
 cd backend && ./mvnw test
 ```
 
-213 tests, run against an in-memory database that the build forces on every one of
+229 tests, run against an in-memory database that the build forces on every one of
 them — a suite able to reach a real database is a suite able to destroy it.
 
 The ones worth knowing about: tenant isolation across reports, analyses and
 mailboxes; the published scoring model held to what the engine actually awards; TOTP
 checked against RFC 6238's own test vectors; SQL-injection attempts through the
 database console's table names; the console's column descriptions held to the live
-schema, so a renamed column fails the build rather than losing its explanation; and
-every client-side route asserted to survive a reload.
+schema, so a renamed column fails the build rather than losing its explanation;
+every client-side route asserted to survive a reload; and a password reset that
+works once, expires, is superseded by a newer request, and stays silent about
+whether the address it was asked for exists at all.
 
 ## Licence
 

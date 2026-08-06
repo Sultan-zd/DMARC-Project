@@ -256,11 +256,37 @@
 .register-hint {
   margin: -0.5rem 0 0;
   font-size: 0.78rem;
+  line-height: 1.55;
   color: var(--card-text-muted);
 }
 
+/* A hint sitting directly above a button needs room, or it reads as the button's
+   own label. The negative top margin above is for hints that follow a paragraph. */
+.register-hint + .login-button {
+  margin-top: 1.4rem;
+}
+
+/* Quieter than "create an account": it is the thing you reach for after a failed
+   attempt, so it has to be findable without competing with the form itself. */
+.login-forgot {
+  margin: 1.1rem 0 0;
+  text-align: center;
+  font-size: 0.83rem;
+}
+
+.login-forgot a {
+  color: var(--card-text-muted);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.login-forgot a:hover {
+  color: var(--tek-brand);
+  border-bottom-color: currentColor;
+}
+
 .register-switch {
-  margin: 1.5rem 0 0;
+  margin: 0.6rem 0 0;
   text-align: center;
   font-size: 0.88rem;
   color: var(--card-text-muted);

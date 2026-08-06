@@ -11,8 +11,8 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Sends the two emails this application produces: confirm your address, and you
- * have been invited.
+ * Sends the three emails this application produces: confirm your address, reset
+ * your password, and you have been invited.
  *
  * <p>Both used to be written to the log with a comment saying SMTP was not
  * configured yet, which meant an administrator had to read the server log and pass
@@ -68,6 +68,38 @@ public class OutboundMailService {
                         "The link works once and expires in 24 hours. If you did not create "
                                 + "this account, ignore this message — the account stays disabled."),
                 "Verification link for " + to, link);
+    }
+
+    /**
+     * The way back in for someone who has lost their password.
+     *
+     * <p>Says plainly that ignoring the message changes nothing. A reset mail that
+     * arrives unasked-for is either a mistyped address or somebody probing, and in
+     * both cases the right instruction is to do nothing — a recipient who is told
+     * that does not go looking for a way to "cancel" it.
+     */
+    @Async
+    public void sendPasswordReset(String to, String username, String token, long ttlMinutes) {
+        String link = publicUrl + "/reset-password?token=" + token;
+        String validity = ttlMinutes % 60 == 0
+                ? (ttlMinutes / 60) + (ttlMinutes == 60 ? " hour" : " hours")
+                : ttlMinutes + " minutes";
+
+        send(to,
+                "Reset your password",
+                body(
+                        "Reset your password",
+                        "Hello " + escape(username) + ",",
+                        "Someone asked to reset the password for this account. Choose a new "
+                                + "one with the button below — you will not be asked for the old "
+                                + "password, because following this link from your mailbox is "
+                                + "what proves the account is yours.",
+                        "Choose a new password",
+                        link,
+                        "The link works once and expires in " + validity + ". If you did not ask "
+                                + "for this, ignore the message: nothing changes and your current "
+                                + "password keeps working."),
+                "Password reset link for " + to, link);
     }
 
     @Async

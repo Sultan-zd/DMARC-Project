@@ -40,6 +40,7 @@ class SpaRouteTest {
     @ParameterizedTest
     @ValueSource(strings = {
             "/", "/login", "/register", "/verify", "/invitation", "/change-password",
+            "/forgot-password", "/reset-password",
             "/dashboard", "/reports", "/alerts", "/analysis", "/admin", "/settings",
             "/platform", "/scan/example.com",
     })

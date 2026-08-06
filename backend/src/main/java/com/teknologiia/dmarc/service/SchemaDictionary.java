@@ -69,6 +69,12 @@ public final class SchemaDictionary {
                     "The link sent when an account is created. Until it is redeemed the account "
                             + "exists but is inactive and cannot sign in.")),
 
+            Map.entry("password_reset_tokens", new TableDoc("Password reset links", ACCESS,
+                    "Emailed to whoever asks to reset a password. Kept in their own table "
+                            + "rather than reusing sign-up confirmations: a link that only "
+                            + "confirms an address must never be redeemable for a new password, "
+                            + "or a 24-hour sign-up link becomes a 24-hour account takeover.")),
+
             Map.entry("recovery_codes", new TableDoc("Two-step recovery codes", ACCESS,
                     "Ten single-use codes issued when two-step verification is switched on — the "
                             + "way back in when the authenticator is on a lost phone. Stored "
@@ -172,6 +178,21 @@ public final class SchemaDictionary {
                     + "never again — a second attempt is refused, which is how a forwarded link "
                     + "cannot activate someone else."),
             Map.entry("email_verification_tokens.created_at", "When the link was issued."),
+
+            // ── password_reset_tokens ──
+            Map.entry("password_reset_tokens.user_id", "The account whose password this link "
+                    + "would change."),
+            Map.entry("password_reset_tokens.token", "The secret in the emailed link. Anyone "
+                    + "holding it can set a new password on that account without knowing the "
+                    + "old one — which is the point, and why it lasts an hour rather than a day."),
+            Map.entry("password_reset_tokens.expires_at", "One hour after issue by default. Past "
+                    + "it the link is refused even though the row remains."),
+            Map.entry("password_reset_tokens.used_at", "When it was spent — either by being "
+                    + "redeemed, or by a newer request superseding it. Asking for a fresh link is "
+                    + "how somebody reacts to losing the device the old one is sitting on, so it "
+                    + "has to take the old one away."),
+            Map.entry("password_reset_tokens.created_at", "When the link was issued. A run of "
+                    + "these against one account, none of them used, is somebody else asking."),
 
             // ── recovery_codes ──
             Map.entry("recovery_codes.user_id", "Whose codes these are."),
@@ -334,6 +355,7 @@ public final class SchemaDictionary {
             Map.entry("organization_domains", List.of("domain", "verified_at")),
             Map.entry("invitations", List.of("email", "role", "accepted_at")),
             Map.entry("email_verification_tokens", List.of("used_at", "expires_at")),
+            Map.entry("password_reset_tokens", List.of("used_at", "expires_at")),
             // A recovery code has nothing to show but whether it has been spent.
             Map.entry("recovery_codes", List.of("used_at")),
             Map.entry("mailbox_settings", List.of("username", "host", "last_run_ok")),
