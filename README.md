@@ -11,7 +11,7 @@ Built for [Teknologiia](https://www.teknologiia.com).
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-compose-2496ED?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-229%20passing-success)
+![Tests](https://img.shields.io/badge/tests-249%20passing-success)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 ---
@@ -47,7 +47,7 @@ the configuration is sound but a legitimate sender is missing from it.
 | **Analysis** | Run a check, see the grade with its breakdown, and what to fix first. |
 | **Admin** | Per organization: invitations, claimed domains, accounts, report intake. |
 | **Settings** | Profile, password, two-step verification, what your role may do, deployment facts. |
-| **Platform** | For whoever runs the service: every organization in counts and health, plus a database console where each table and column carries what it is for. |
+| **Platform** | For whoever runs the service: every organization in counts and health, an audit trail of who did what, plus a database console where each table and column carries what it is for. |
 
 ## Multi-tenancy
 
@@ -183,6 +183,13 @@ Everything is an environment variable, with defaults suited to local work.
 - **Password reset by email** — single-use, one hour, and asking for a new link
   spends the old one. The endpoint answers identically whether or not the address is
   registered, so it cannot be used to ask who has an account here.
+- **Sessions can be ended.** A JWT cannot be called back once signed, so each
+  account carries the instant its sessions were invalidated and older tokens are
+  refused. Moved by a password change, a reset, a disable, or *sign out everywhere*
+  — and an operator can end anyone's without disabling the account.
+- **An audit trail in a table, not a log file.** Who created, disabled, deleted or
+  demoted an account; who removed an organization; who emptied a table or revealed a
+  credential column. Filterable by actor, action and period.
 - **Roles enforced at the API**, not merely hidden in the interface: Administrator,
   Analyst, Viewer.
 - **Hardened parsing** — XXE disabled, decompression bounded, archive entries capped.
@@ -194,7 +201,7 @@ Everything is an environment variable, with defaults suited to local work.
 cd backend && ./mvnw test
 ```
 
-229 tests, run against an in-memory database that the build forces on every one of
+249 tests, run against an in-memory database that the build forces on every one of
 them — a suite able to reach a real database is a suite able to destroy it.
 
 The ones worth knowing about: tenant isolation across reports, analyses and
@@ -202,9 +209,11 @@ mailboxes; the published scoring model held to what the engine actually awards; 
 checked against RFC 6238's own test vectors; SQL-injection attempts through the
 database console's table names; the console's column descriptions held to the live
 schema, so a renamed column fails the build rather than losing its explanation;
-every client-side route asserted to survive a reload; and a password reset that
-works once, expires, is superseded by a newer request, and stays silent about
-whether the address it was asked for exists at all.
+every client-side route asserted to survive a reload; a password reset that works
+once, expires, is superseded by a newer request, and stays silent about whether the
+address it was asked for exists at all; and revocation driven through the real
+authentication filter with real tokens, because whether a request carrying one is
+honoured is the only thing an attacker holding it cares about either.
 
 ## Licence
 

@@ -16,6 +16,7 @@ import com.teknologiia.dmarc.dto.user.UserResponse;
 import com.teknologiia.dmarc.service.AuthService;
 import com.teknologiia.dmarc.service.PasswordResetService;
 import com.teknologiia.dmarc.service.RegistrationService;
+import com.teknologiia.dmarc.service.SessionService;
 import com.teknologiia.dmarc.service.UserService;
 import com.teknologiia.dmarc.web.ClientAddress;
 import com.teknologiia.dmarc.web.RateLimiter;
@@ -62,6 +63,7 @@ public class AuthController {
     private final RateLimiter rateLimiter;
     private final TwoFactorService twoFactorService;
     private final ClientAddress clientAddress;
+    private final SessionService sessionService;
 
     @PostMapping("/login")
     public TokenResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest http) {
@@ -165,9 +167,32 @@ public class AuthController {
     @PostMapping("/change-password")
     public Map<String, String> changePassword(@AuthenticationPrincipal UserDetails userDetails,
                                               @Valid @RequestBody PasswordChangeRequest request) {
-        userService.changeOwnPassword(
+        var revokedAt = userService.changeOwnPassword(
                 userDetails.getUsername(), request.currentPassword(), request.newPassword());
-        return Map.of("detail", "Your password has been changed.");
+
+        // The change revoked every session on this account, including this one. The
+        // replacement is stamped past the revocation on purpose — anything dated
+        // within it is a session that was already open, and those are what the
+        // revocation is for.
+        return Map.of(
+                "detail", "Your password has been changed. Any other sessions were signed out.",
+                "access_token", authService
+                        .issueAfterRevocation(userDetails.getUsername(), revokedAt).access_token());
+    }
+
+    /**
+     * Ends every session on the caller's own account, this one included.
+     *
+     * <p>The button for "I think somebody else has my token". It cannot end one
+     * session and spare another — that needs a record per sign-in, which does not
+     * exist — and when somebody presses this, all of them is what they mean.
+     */
+    @PostMapping("/sign-out-everywhere")
+    public Map<String, String> signOutEverywhere(@AuthenticationPrincipal UserDetails userDetails) {
+        sessionService.revokeAll(userDetails.getUsername(), userDetails.getUsername(),
+                "signed out everywhere by its owner");
+        return Map.of("detail",
+                "Every session on this account has been signed out, including this one.");
     }
 
     /**

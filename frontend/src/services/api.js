@@ -345,6 +345,24 @@ export async function setPlatformAccountActive(token, id, active) {
 }
 
 /** Refused unless the organization holds nothing at all. */
+/** Who did what, filtered. Operator only. */
+export async function getAuditTrail(token, params = {}) {
+  const query = new URLSearchParams(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== '' && v !== null),
+  ).toString();
+  return request(`/platform/audit${query ? `?${query}` : ''}`, { token });
+}
+
+/** Ends every session an account holds, without disabling the account. */
+export async function revokePlatformSessions(token, userId) {
+  return request(`/platform/accounts/${userId}/revoke-sessions`, { token, method: 'POST' });
+}
+
+/** Ends every session on the caller's own account, this one included. */
+export async function signOutEverywhere(token) {
+  return request('/auth/sign-out-everywhere', { token, method: 'POST' });
+}
+
 export async function removePlatformOrganization(token, id) {
   return request(`/platform/organizations/${id}`, { token, method: 'DELETE' });
 }

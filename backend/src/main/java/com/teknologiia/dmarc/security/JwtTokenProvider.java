@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
 
@@ -88,7 +89,21 @@ public class JwtTokenProvider {
     }
 
     public String generateToken(String username, String role) {
-        Date now = new Date();
+        return generateToken(username, role, Instant.now());
+    }
+
+    /**
+     * A session token stamped with a chosen issue time.
+     *
+     * <p>Exists for one case: a caller that has just revoked an account's sessions
+     * and wants to keep its own. The authentication filter compares iat against the
+     * revocation watermark strictly, and iat has one-second resolution — so a
+     * replacement minted in the same second would be refused along with everything
+     * else. Dating it a second past the watermark is what makes the difference
+     * between the two expressible at all.
+     */
+    public String generateToken(String username, String role, Instant issuedAt) {
+        Date now = Date.from(issuedAt);
         Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
 
         return Jwts.builder()
@@ -126,6 +141,23 @@ public class JwtTokenProvider {
             var claims = Jwts.parser().verifyWith(signingKey).build()
                     .parseSignedClaims(token).getPayload();
             return "mfa".equals(claims.get("purpose", String.class)) ? claims.getSubject() : null;
+        } catch (JwtException | IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    /**
+     * When this token was issued, or null if it cannot be read.
+     *
+     * <p>Compared against the account's revocation watermark. A JWT cannot be
+     * called back once signed, so the only way to end a session early is to refuse
+     * tokens older than the moment revocation was asked for.
+     */
+    public Instant getIssuedAt(String token) {
+        try {
+            Date issued = Jwts.parser().verifyWith(signingKey).build()
+                    .parseSignedClaims(token).getPayload().getIssuedAt();
+            return issued == null ? null : issued.toInstant();
         } catch (JwtException | IllegalArgumentException ex) {
             return null;
         }

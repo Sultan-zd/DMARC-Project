@@ -212,6 +212,9 @@
 .explorer-accounts .muted { color: var(--text-secondary); white-space: nowrap; }
 .explorer-actions { text-align: right; white-space: nowrap; }
 
+/* Two buttons now; without a gap they read as one control with a seam in it. */
+.explorer-actions .btn-tiny + .btn-tiny { margin-left: 0.35rem; }
+
 .btn-tiny {
   padding: 0.25rem 0.6rem;
   background: var(--bg-card);

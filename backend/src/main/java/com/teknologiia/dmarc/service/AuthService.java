@@ -4,6 +4,8 @@ import com.teknologiia.dmarc.dto.auth.LoginRequest;
 import com.teknologiia.dmarc.dto.auth.TokenResponse;
 import com.teknologiia.dmarc.dto.user.UserResponse;
 import com.teknologiia.dmarc.model.User;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import com.teknologiia.dmarc.repository.UserRepository;
 import com.teknologiia.dmarc.security.JwtTokenProvider;
 import com.teknologiia.dmarc.security.PlatformAccess;
@@ -91,6 +93,22 @@ public class AuthService {
     public TokenResponse refreshToken(String username) {
         // Reached only through an existing session, so the second factor is behind us.
         return session(userRepository.findByUsername(username).orElseThrow());
+    }
+
+    /**
+     * A replacement session for somebody who has just revoked their own.
+     *
+     * <p>Changing a password ends every session on the account, this one included.
+     * Handing back a token dated past the revocation keeps the person who did the
+     * right thing signed in, without weakening what revocation means for anyone
+     * else — every other token still carries its original, older stamp.
+     */
+    public TokenResponse issueAfterRevocation(String username, LocalDateTime revokedAt) {
+        User user = userRepository.findByUsername(username).orElseThrow();
+        String token = tokenProvider.generateToken(user.getUsername(), user.getRole(),
+                revokedAt.toInstant(ZoneOffset.UTC).plusSeconds(1));
+        return TokenResponse.session(token, user.getRole(), user.getUsername(),
+                user.isMustChangePassword());
     }
 
     public UserResponse getCurrentUser(String username) {

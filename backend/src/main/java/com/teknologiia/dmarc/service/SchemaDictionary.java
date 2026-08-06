@@ -27,13 +27,14 @@ public final class SchemaDictionary {
     public static final String ACCESS = "Accounts and access";
     public static final String EMAIL = "Email authentication data";
     public static final String OPERATIONS = "Operations";
+    public static final String AUDIT = "Accountability";
 
     /**
      * The order the groups are listed in — who can get in, what was collected, how
      * it is running. Alphabetical order put "Operations" first and "Accounts" last,
      * which is the reverse of what anyone opens the page to look at.
      */
-    private static final List<String> GROUP_ORDER = List.of(ACCESS, EMAIL, OPERATIONS);
+    private static final List<String> GROUP_ORDER = List.of(ACCESS, EMAIL, OPERATIONS, AUDIT);
 
     public static int groupRank(String group) {
         int rank = GROUP_ORDER.indexOf(group);
@@ -99,6 +100,12 @@ public final class SchemaDictionary {
                     "The IMAP mailbox each organization has reports collected from, one per "
                             + "organization. Holds the only reversible secret in the schema.")),
 
+            Map.entry("audit_events", new TableDoc("Audit trail", AUDIT,
+                    "Who did what, and when. Everything here is in the application log as "
+                            + "well — the difference is that a log rotates and cannot be "
+                            + "filtered by actor without reading it by hand. Nothing in the "
+                            + "application updates a row here; it is written once and left.")),
+
             Map.entry("alerts", new TableDoc("Alerts", OPERATIONS,
                     "Findings raised for an organization: volume spikes, failure rates, and "
                             + "problems an analysis turned up. Regenerated from the data, so this "
@@ -136,6 +143,11 @@ public final class SchemaDictionary {
                     + "soon as enrolment starts, which is why it alone does not mean two-step is on."),
             Map.entry("users.totp_enabled_at", "When two-step verification was confirmed. Null means "
                     + "it is not in force, whatever the secret column holds."),
+            Map.entry("users.tokens_valid_from", "Sessions opened before this instant are no "
+                    + "longer honoured. A JWT cannot be called back once signed, so revoking is "
+                    + "done by refusing anything older than this watermark. Moved by a password "
+                    + "change, a reset, a disable, or somebody signing out everywhere. Empty "
+                    + "means nothing has ever been revoked."),
             Map.entry("users.created_at", "When the account was created, in UTC."),
 
             // ── organizations ──
@@ -283,6 +295,27 @@ public final class SchemaDictionary {
             Map.entry("domain_analyses.recommendations_json", "What to fix, in the order it was "
                     + "worth fixing."),
 
+            // ── audit_events ──
+            Map.entry("audit_events.at", "When it happened, in UTC."),
+            Map.entry("audit_events.actor", "Who did it, by username. `system` for anything "
+                    + "nobody asked for — the scheduled collector, a startup task."),
+            Map.entry("audit_events.actor_organization_id", "The actor's organization, or empty "
+                    + "when an operator acted across all of them."),
+            Map.entry("audit_events.action", "What was done. ACCOUNT_DELETED, SESSIONS_REVOKED, "
+                    + "DATABASE_TABLE_CLEARED and the rest."),
+            Map.entry("audit_events.target_type", "What kind of thing it was done to: ACCOUNT, "
+                    + "ORGANIZATION, TABLE, MAILBOX."),
+            Map.entry("audit_events.target_id", "The target's key, where it had one. Often "
+                    + "points at a row that no longer exists — which is the point."),
+            Map.entry("audit_events.target_label", "The target's name at the time, copied rather "
+                    + "than joined. An entry reading `account #47` answers nothing once #47 is "
+                    + "gone, and the deleted ones are exactly the ones being asked about."),
+            Map.entry("audit_events.detail", "What is worth knowing beyond the action itself — "
+                    + "the role before a change, the number of rows removed. Never a credential."),
+            Map.entry("audit_events.client_ip", "Where the request came from, as far as this "
+                    + "deployment can tell. Trustworthy only when APP_TRUST_PROXY_HEADERS matches "
+                    + "how the service is actually reached."),
+
             // ── alerts ──
             Map.entry("alerts.organization_id", "Who this alert is for."),
             Map.entry("alerts.alert_type", "What raised it — a volume spike, a failure rate, an "
@@ -363,7 +396,8 @@ public final class SchemaDictionary {
             Map.entry("dmarc_records",
                     List.of("source_ip", "count", "header_from", "disposition")),
             Map.entry("domain_analyses", List.of("domain", "score", "grade")),
-            Map.entry("alerts", List.of("severity", "message", "domain"))
+            Map.entry("alerts", List.of("severity", "message", "domain")),
+            Map.entry("audit_events", List.of("at", "actor", "action", "target_label"))
     );
 
     /** Columns holding JSON, which the interface should offer to expand rather than truncate. */

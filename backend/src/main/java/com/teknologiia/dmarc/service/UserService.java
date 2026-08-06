@@ -11,11 +11,13 @@ import com.teknologiia.dmarc.security.PasswordPolicy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -42,6 +44,22 @@ public class UserService {
     private final OrganizationRepository organizationRepository;
     private final PasswordEncoder passwordEncoder;
     private final PasswordPolicy passwordPolicy;
+    private final AuditService auditService;
+    private final SessionService sessionService;
+
+    /**
+     * Who is acting, for the audit trail.
+     *
+     * <p>Read from the security context rather than taken as a parameter: every
+     * caller of these methods is a signed-in administrator, and threading the name
+     * through four signatures that already carry a caller id would be the same
+     * value twice. Falls back to {@code system} for anything running outside a
+     * request, where nobody asked.
+     */
+    private static String callerUsername() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication == null ? AuditService.SYSTEM : authentication.getName();
+    }
 
     public List<UserResponse> getAllUsers(Long organizationId) {
         return userRepository.findByOrganizationIdOrderByCreatedAtAsc(organizationId).stream()
@@ -91,6 +109,12 @@ public class UserService {
                 .mustChangePassword(true)
                 .build());
 
+        // The password is deliberately not in the detail. An audit trail that
+        // records credentials is a credential store nobody thinks to protect.
+        auditService.record(callerUsername(), organizationId, AuditAction.ACCOUNT_CREATED,
+                AuditAction.TARGET_ACCOUNT, saved.getId(), saved.getUsername(),
+                role + " · " + email);
+
         log.info("Created {} account '{}' in organization {}", role, username, organizationId);
         return new UserCreated(toResponse(saved), generated ? password : null);
     }
@@ -109,8 +133,16 @@ public class UserService {
                     "You cannot remove your own administrator access.");
         }
 
+        String previous = user.getRole();
         user.setRole(role);
-        return toResponse(userRepository.save(user));
+        UserResponse saved = toResponse(userRepository.save(user));
+
+        // Authorities are read from the database on every request, so the change
+        // takes effect at once -- no revocation needed, only a record of it.
+        auditService.record(callerUsername(), organizationId, AuditAction.ACCOUNT_ROLE_CHANGED,
+                AuditAction.TARGET_ACCOUNT, user.getId(), user.getUsername(),
+                previous + " to " + role);
+        return saved;
     }
 
     /** Enables or disables an account. Disabled accounts cannot authenticate. */
@@ -127,7 +159,19 @@ public class UserService {
         }
 
         user.setActive(active);
-        return toResponse(userRepository.save(user));
+        UserResponse saved = toResponse(userRepository.save(user));
+
+        // Disabling has to reach the sessions already open. Spring refuses a
+        // disabled account at sign-in, but a token issued before it was disabled
+        // arrives at the filter instead -- so the account has to be cut off
+        // explicitly, or being disabled means nothing for the next hour.
+        if (!active) {
+            sessionService.revokeAll(user, callerUsername(), "account disabled");
+        }
+        auditService.record(callerUsername(), organizationId,
+                active ? AuditAction.ACCOUNT_ENABLED : AuditAction.ACCOUNT_DISABLED,
+                AuditAction.TARGET_ACCOUNT, user.getId(), user.getUsername(), null);
+        return saved;
     }
 
     @Transactional
@@ -141,6 +185,12 @@ public class UserService {
         if ("ADMIN".equals(user.getRole())) {
             requireAnotherAdmin(organizationId, "You cannot delete the last administrator.");
         }
+
+        // Recorded before the delete, while the account still has a name: an entry
+        // reading "account #47" answers nothing once #47 is gone.
+        auditService.record(callerUsername(), organizationId, AuditAction.ACCOUNT_DELETED,
+                AuditAction.TARGET_ACCOUNT, user.getId(), user.getUsername(),
+                user.getEmail() + " · " + user.getRole());
 
         userRepository.delete(user);
         log.info("Deleted account '{}' from organization {}", user.getUsername(), organizationId);
@@ -156,13 +206,25 @@ public class UserService {
         user.setMustChangePassword(true);
         userRepository.save(user);
 
+        // Whoever held a session on this account is not necessarily its owner --
+        // that is often why the password is being reset.
+        sessionService.revokeAll(user, callerUsername(), "password reset by an administrator");
+        auditService.record(callerUsername(), organizationId,
+                AuditAction.ACCOUNT_PASSWORD_RESET_BY_ADMIN, AuditAction.TARGET_ACCOUNT,
+                user.getId(), user.getUsername(), null);
+
         log.info("Password reset for '{}' in organization {}", user.getUsername(), organizationId);
         return password;
     }
 
-    /** A user changing their own password, which also clears the forced-change flag. */
+    /**
+     * A user changing their own password, which also clears the forced-change flag.
+     *
+     * @return the instant every session on this account was invalidated, so the
+     *         caller can mint a replacement dated past it and keep this one alive
+     */
     @Transactional
-    public void changeOwnPassword(String username, String currentPassword, String newPassword) {
+    public LocalDateTime changeOwnPassword(String username, String currentPassword, String newPassword) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found."));
 
@@ -178,6 +240,18 @@ public class UserService {
         user.setHashedPassword(passwordEncoder.encode(newPassword));
         user.setMustChangePassword(false);
         userRepository.save(user);
+
+        // Changing a password because it may have been seen is only half done if
+        // the sessions opened with the old one keep working. This ends all of them,
+        // including the one making the request — the caller mints a replacement
+        // token afterwards so the person doing the right thing is not punished for
+        // it by being thrown out.
+        LocalDateTime revokedAt =
+                sessionService.revokeAll(user, username, "password changed by its owner");
+        auditService.record(username, user.getOrganization().getId(),
+                AuditAction.PASSWORD_CHANGED, AuditAction.TARGET_ACCOUNT,
+                user.getId(), user.getUsername(), null);
+        return revokedAt;
     }
 
     public UserResponse findByUsername(String username) {

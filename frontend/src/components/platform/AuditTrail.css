@@ -1,0 +1,252 @@
+.audit-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.1rem;
+}
+
+.audit-head h2 { margin: 0; }
+
+.audit-lead {
+  max-width: 62ch;
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.audit-total { text-align: right; }
+
+.audit-total span {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.audit-total strong {
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+/* ─── Filters ─── */
+
+.audit-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.audit-search {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 200px;
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+}
+
+.audit-search:focus-within { border-color: var(--accent-primary); }
+.audit-search svg { color: var(--text-muted); flex-shrink: 0; }
+
+.audit-search input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 0.83rem;
+  color: var(--text-primary);
+}
+
+.audit-filters select {
+  padding: 0.42rem 0.6rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.audit-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.6rem;
+  background: none;
+  border: none;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.audit-clear:hover { color: var(--danger); }
+
+/* ─── Entries ─── */
+
+.audit-list-wrap {
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.audit-list { list-style: none; margin: 0; padding: 0; }
+
+.audit-list li {
+  display: grid;
+  grid-template-columns: 9.5rem minmax(0, 1fr) 8rem;
+  gap: 0.9rem;
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid var(--border-primary);
+  /* The weight strip. Routine entries get a transparent one so every row keeps
+     the same text indent — a list where only some rows are inset reads as broken. */
+  border-left: 3px solid transparent;
+}
+
+.audit-list li:last-child { border-bottom: none; }
+.audit-list li:hover { background: var(--bg-secondary); }
+
+.audit-list li.severe { border-left-color: var(--danger); }
+.audit-list li.notable { border-left-color: var(--warning); }
+
+@media (max-width: 900px) {
+  .audit-list li { grid-template-columns: 1fr; gap: 0.3rem; }
+  .audit-ip { text-align: left !important; }
+}
+
+.audit-when { font-variant-numeric: tabular-nums; }
+
+.audit-stamp {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.audit-ago {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.audit-what { min-width: 0; }
+
+.audit-line {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.audit-actor {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.audit-action {
+  padding: 0.05rem 0.45rem;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.audit-action.severe { background: var(--danger-bg); color: var(--danger); }
+.audit-action.notable { background: var(--warning-bg); color: var(--warning); }
+
+.audit-target {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  min-width: 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.audit-target-kind {
+  padding: 0.02rem 0.3rem;
+  background: var(--bg-secondary);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text-muted);
+}
+
+.audit-target-id {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.audit-detail {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.audit-ip {
+  font-family: var(--font-mono);
+  font-size: 0.71rem;
+  color: var(--text-muted);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.audit-empty {
+  padding: 2rem 1rem;
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* ─── Pager ─── */
+
+.audit-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.audit-pager-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.audit-pager-buttons button {
+  display: inline-flex;
+  padding: 0.3rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.audit-pager-buttons button:hover:not(:disabled) { border-color: var(--accent-primary); }
+.audit-pager-buttons button:disabled { opacity: 0.4; cursor: not-allowed; }

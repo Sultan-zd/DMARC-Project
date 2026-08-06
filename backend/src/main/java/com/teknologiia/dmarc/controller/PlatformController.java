@@ -1,10 +1,12 @@
 package com.teknologiia.dmarc.controller;
 
+import com.teknologiia.dmarc.dto.platform.AuditPage;
 import com.teknologiia.dmarc.dto.platform.PlatformOverview;
 import com.teknologiia.dmarc.dto.platform.TenantDetail;
 import com.teknologiia.dmarc.security.AuthenticatedUser;
 import com.teknologiia.dmarc.security.PlatformAccess;
 import com.teknologiia.dmarc.service.MailboxPoller;
+import com.teknologiia.dmarc.service.AuditService;
 import com.teknologiia.dmarc.service.PlatformService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -31,6 +33,7 @@ public class PlatformController {
     private final PlatformService platformService;
     private final PlatformAccess platformAccess;
     private final MailboxPoller mailboxPoller;
+    private final AuditService auditService;
 
     @GetMapping("/overview")
     public PlatformOverview overview(@AuthenticationPrincipal AuthenticatedUser caller) {
@@ -61,6 +64,43 @@ public class PlatformController {
         boolean active = Boolean.TRUE.equals(body.get("active"));
         platformService.setAccountActive(id, active, caller.getUsername());
         return Map.of("detail", active ? "Account enabled." : "Account disabled.");
+    }
+
+    /**
+     * Ends every session on any account, without touching the account itself.
+     *
+     * <p>The lighter of the two things an operator can do to somebody signed in.
+     * Disabling locks them out until an administrator relents; this only makes them
+     * sign in again — which is what you want when a laptop went missing and the
+     * person still has a job to do.
+     */
+    @PostMapping("/accounts/{id}/revoke-sessions")
+    public Map<String, String> revokeSessions(@AuthenticationPrincipal AuthenticatedUser caller,
+                                              @PathVariable Long id) {
+        requireOperator(caller);
+        String username = platformService.revokeSessions(id, caller.getUsername());
+        return Map.of("detail", "Every session held by " + username + " has been signed out.");
+    }
+
+    // ─── The audit trail ────────────────────────────────────────────
+
+    /**
+     * Who did what, queryable.
+     *
+     * <p>All of this is in the application log too. The difference is that a log
+     * rotates and cannot be filtered by actor without reading it by hand — so
+     * "who deleted this account in March" was a search through files, and only if
+     * the files still existed.
+     */
+    @GetMapping("/audit")
+    public AuditPage audit(@AuthenticationPrincipal AuthenticatedUser caller,
+                           @RequestParam(required = false) String actor,
+                           @RequestParam(required = false) String action,
+                           @RequestParam(required = false) Integer days,
+                           @RequestParam(defaultValue = "1") int page,
+                           @RequestParam(name = "page_size", defaultValue = "25") int pageSize) {
+        requireOperator(caller);
+        return auditService.search(actor, action, days, page, pageSize);
     }
 
     /** Removes an organization, refused unless it holds nothing at all. */

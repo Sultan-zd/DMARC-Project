@@ -46,6 +46,8 @@ public class PasswordResetService {
     private final PasswordEncoder passwordEncoder;
     private final PasswordPolicy passwordPolicy;
     private final OutboundMailService mailService;
+    private final SessionService sessionService;
+    private final AuditService auditService;
 
     /**
      * Shorter than the 24 hours a sign-up link gets. A confirmation link sitting
@@ -157,6 +159,14 @@ public class PasswordResetService {
         // Any other link that was outstanding dies with this one. Somebody who has
         // just recovered an account should not leave a second key under the mat.
         spendOutstanding(user, "password already reset");
+
+        // And so does any session. Losing a password is often how somebody
+        // discovers their account was taken — leaving whoever took it signed in
+        // would make the recovery cosmetic.
+        sessionService.revokeAll(user, user.getUsername(), "password reset by email");
+        auditService.record(user.getUsername(), user.getOrganization().getId(),
+                AuditAction.PASSWORD_RESET_COMPLETED, AuditAction.TARGET_ACCOUNT,
+                user.getId(), user.getUsername(), null);
 
         log.info("Password reset completed for {}", user.getUsername());
     }

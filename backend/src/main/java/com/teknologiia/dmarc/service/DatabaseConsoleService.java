@@ -72,6 +72,7 @@ public class DatabaseConsoleService {
     private static final int MAX_PAGE_SIZE = 200;
 
     private final DataSource dataSource;
+    private final AuditService auditService;
 
     /** Every table in this schema, with what it holds and what it is for. */
     public List<TableSummary> tables() {
@@ -175,6 +176,9 @@ public class DatabaseConsoleService {
 
             if (reveal && !masked.isEmpty()) {
                 log.warn("Operator {} revealed credential columns {} in {}", operator, masked, table);
+                auditService.record(operator, AuditAction.DATABASE_SECRETS_REVEALED,
+                        AuditAction.TARGET_TABLE, null, table,
+                        "columns " + String.join(", ", masked));
             }
 
             long total = count(connection, table, where, names.size(), search);
@@ -233,6 +237,8 @@ public class DatabaseConsoleService {
                 if (removed == 0) {
                     throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No row with that key.");
                 }
+                auditService.record(operator, AuditAction.DATABASE_ROW_DELETED,
+                        AuditAction.TARGET_TABLE, null, table, primaryKey + " = " + key);
             }
         } catch (SQLException e) {
             throw failure("Could not delete that row", e);
@@ -255,6 +261,8 @@ public class DatabaseConsoleService {
             try (Statement statement = connection.createStatement()) {
                 long removed = statement.executeUpdate("DELETE FROM `" + table + "`");
                 log.warn("Operator {} emptied table {} — {} row(s) removed", operator, table, removed);
+                auditService.record(operator, AuditAction.DATABASE_TABLE_CLEARED,
+                        AuditAction.TARGET_TABLE, null, table, removed + " rows removed");
                 return removed;
             }
         } catch (SQLException e) {

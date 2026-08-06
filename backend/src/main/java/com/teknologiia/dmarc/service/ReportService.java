@@ -63,7 +63,15 @@ public class ReportService {
         String sortField = SORTABLE.getOrDefault(sortBy, "dateBegin");
 
         // PageRequest is zero-based; the API is one-based.
-        Pageable pageable = PageRequest.of(pageNumber - 1, pageSize, Sort.by(direction, sortField));
+        //
+        // The key is broken by id, and that is not cosmetic. Two reports covering
+        // the same period sort equally, and a database is free to return equal rows
+        // in any order it likes — including a different one per query. Paginating on
+        // a key that is not a total order lets the same report appear on two pages
+        // while another is never shown at all, with nothing in the output admitting
+        // it. The tie-break makes the sequence reproducible.
+        Pageable pageable = PageRequest.of(pageNumber - 1, pageSize,
+                Sort.by(direction, sortField).and(Sort.by(Sort.Direction.DESC, "id")));
 
         Specification<DmarcReport> spec =
                 filter(organizationId, domain, orgName, sourceIp, dateFrom, dateTo, policy);

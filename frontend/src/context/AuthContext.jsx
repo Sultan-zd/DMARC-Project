@@ -72,6 +72,19 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('dmarc_must_change');
   };
 
+  /**
+   * Swaps in a token the server just issued, keeping the session open.
+   *
+   * <p>Needed because changing a password now revokes every session on the
+   * account — this one included. The server hands back a replacement dated after
+   * the revocation, and without storing it the next request from this tab would be
+   * refused: doing the right thing would look like being thrown out for it.
+   */
+  const replaceToken = (accessToken) => {
+    localStorage.setItem('dmarc_token', accessToken);
+    setToken(accessToken);
+  };
+
   const logout = () => {
     localStorage.removeItem('dmarc_token');
     localStorage.removeItem('dmarc_must_change');
@@ -82,7 +95,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{
-      user, token, loading, login, completeTwoFactor, logout,
+      user, token, loading, login, completeTwoFactor, logout, replaceToken,
       mustChangePassword, clearPasswordChange,
     }}>
       {children}

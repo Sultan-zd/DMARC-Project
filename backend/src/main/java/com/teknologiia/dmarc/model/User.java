@@ -68,6 +68,22 @@ public class User {
     @Column(name = "totp_enabled_at")
     private LocalDateTime totpEnabledAt;
 
+    /**
+     * The instant before which this account's sessions are no longer honoured.
+     *
+     * <p>A JWT is stateless: once signed, nothing can call it back. Storing a
+     * watermark here and refusing any token issued before it gives revocation
+     * without a session table — one row per account instead of one per sign-in, and
+     * the check is already paid for because the filter loads this user on every
+     * request anyway.
+     *
+     * <p>Moved whenever the answer to "should the old sessions still work" is no:
+     * a password changed or reset, an account disabled, or somebody pressing sign
+     * out everywhere. Null means nothing has ever been revoked.
+     */
+    @Column(name = "tokens_valid_from")
+    private LocalDateTime tokensValidFrom;
+
     @Column(name = "created_at", updatable = false)
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now(ZoneOffset.UTC);

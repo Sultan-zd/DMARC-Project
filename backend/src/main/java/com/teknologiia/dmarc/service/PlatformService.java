@@ -59,6 +59,8 @@ public class PlatformService {
     private final OrganizationDomainRepository organizationDomainRepository;
     private final EntityManager entityManager;
     private final DataSource dataSource;
+    private final AuditService auditService;
+    private final SessionService sessionService;
     private final Optional<BuildProperties> buildProperties;
 
     @Value("${app.public-url}")
@@ -189,8 +191,33 @@ public class PlatformService {
 
         user.setActive(active);
         userRepository.save(user);
+
+        // Same reasoning as the per-organization version: disabling has to reach
+        // the sessions already open, or it means nothing until the token expires.
+        if (!active) {
+            sessionService.revokeAll(user, callerUsername, "account disabled by an operator");
+        }
+        auditService.record(callerUsername, null,
+                active ? AuditAction.ACCOUNT_ENABLED : AuditAction.ACCOUNT_DISABLED,
+                AuditAction.TARGET_ACCOUNT, user.getId(), user.getUsername(),
+                "from the platform console");
+
         log.warn("Platform operator {} {} account '{}'", callerUsername,
                 active ? "enabled" : "disabled", user.getUsername());
+    }
+
+    /**
+     * Ends every session on an account, leaving the account itself alone.
+     *
+     * @return the account's username, so the caller can name it back
+     */
+    @Transactional
+    public String revokeSessions(Long userId, String callerUsername) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No such account."));
+
+        sessionService.revokeAll(user, callerUsername, "signed out by an operator");
+        return user.getUsername();
     }
 
     /**
@@ -212,6 +239,10 @@ public class PlatformService {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "This organization still holds accounts or data. Only empty ones can be removed.");
         }
+
+        auditService.record(callerUsername, null, AuditAction.ORGANIZATION_REMOVED,
+                AuditAction.TARGET_ORGANIZATION, organization.getId(), organization.getName(),
+                "empty organization");
 
         organizationRepository.delete(organization);
         log.warn("Platform operator {} removed empty organization '{}'",

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   User, Shield, Moon, Sun, Mail, KeyRound, Building2, Server, Check, X,
-  AlertTriangle, Loader2, Calendar,
+  AlertTriangle, Loader2, Calendar, LogOut,
 } from 'lucide-react';
 import PasswordField from '../components/ui/PasswordField';
 import TwoFactorCard from '../components/settings/TwoFactorCard';
@@ -64,7 +64,7 @@ const pendingChecks = (info) => [
 
 const Settings = () => {
   usePageTitle('Settings');
-  const { user, token } = useAuth();
+  const { user, token, logout, replaceToken } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { showToast } = useToast();
   const info = useSystemInfo();
@@ -73,9 +73,30 @@ const Settings = () => {
   const [next, setNext] = useState('');
   const [confirm, setConfirm] = useState('');
   const [saving, setSaving] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState('');
 
   const role = String(user?.role ?? '').toUpperCase();
+
+  /**
+   * Ends every session, this one included.
+   *
+   * <p>The local sign-out happens whatever the server said. If the call failed
+   * because the token was already refused, staying on a page that cannot load
+   * anything would be worse than leaving.
+   */
+  const endEverySession = async () => {
+    setSigningOut(true);
+    try {
+      await api.signOutEverywhere(token);
+      showToast('Signed out everywhere', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setSigningOut(false);
+      logout();
+    }
+  };
 
   const changePassword = async (event) => {
     event.preventDefault();
@@ -88,11 +109,17 @@ const Settings = () => {
 
     setSaving(true);
     try {
-      await api.changeOwnPassword(token, current, next);
+      const result = await api.changeOwnPassword(token, current, next);
       setCurrent('');
       setNext('');
       setConfirm('');
-      showToast('Password changed', 'success');
+      // The change revoked every session including this one, and the server
+      // handed back a replacement dated after the revocation. Without swapping
+      // it in, the next request from this tab would be refused.
+      if (result?.access_token) {
+        replaceToken(result.access_token);
+      }
+      showToast('Password changed. Other sessions were signed out.', 'success');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -154,8 +181,11 @@ const Settings = () => {
           <section className="settings-card glass-card">
             <h2 className="settings-card-title"><KeyRound size={20} /> Password</h2>
             <p className="settings-description">
-              Changing it here signs nothing else out — sessions last
-              {info ? ` ${info.sessionMinutes} minutes` : ' a fixed period'} and then expire on
+              Changing it here signs out every other session on this account — a
+              password changed because it may have been seen is only half changed if
+              the sessions opened with the old one keep working. This tab stays
+              signed in. Sessions otherwise last
+              {info ? ` ${info.sessionMinutes} minutes` : ' a fixed period'} and expire on
               their own.
             </p>
 
@@ -199,6 +229,36 @@ const Settings = () => {
                 {saving ? <><Loader2 size={16} className="spin" /> Saving…</> : 'Change password'}
               </button>
             </form>
+          </section>
+
+          {/* ── Sessions ── */}
+          <section className="settings-card glass-card">
+            <h2 className="settings-card-title"><LogOut size={20} /> Sessions</h2>
+            <p className="settings-description">
+              A session is a signed token held by a browser. Changing your password
+              already ends all of them; this ends them without changing it — the
+              thing to press when a laptop goes missing or a token may have been
+              copied.
+            </p>
+
+            <div className="setting-row">
+              <div className="setting-info">
+                <span className="setting-label">Sign out everywhere</span>
+                <span className="setting-description">
+                  Every device, <strong>including this one</strong>. You will be asked
+                  to sign in again.
+                </span>
+              </div>
+              <button
+                className="btn btn-secondary"
+                disabled={signingOut}
+                onClick={endEverySession}
+              >
+                {signingOut
+                  ? <><Loader2 size={15} className="spin" /> Signing out…</>
+                  : <><LogOut size={15} /> Sign out everywhere</>}
+              </button>
+            </div>
           </section>
 
           <TwoFactorCard />

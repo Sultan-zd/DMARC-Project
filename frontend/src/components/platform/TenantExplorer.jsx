@@ -173,6 +173,20 @@ const TenantExplorer = ({ currentUsername, onChange }) => {
                                 </td>
                                 <td className="muted">{when(a.createdAt)}</td>
                                 <td className="explorer-actions">
+                                  {/* Lighter than disabling: they sign in again
+                                      rather than needing somebody to relent. What
+                                      you want when a laptop went missing. */}
+                                  <button
+                                    className="btn-tiny"
+                                    disabled={busy}
+                                    title="End every session this account holds"
+                                    onClick={() => run(
+                                      () => api.revokePlatformSessions(token, a.id),
+                                      `${a.username} signed out everywhere`,
+                                    )}
+                                  >
+                                    Sign out
+                                  </button>
                                   <button
                                     className="btn-tiny"
                                     disabled={busy || self}

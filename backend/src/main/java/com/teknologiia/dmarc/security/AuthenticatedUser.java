@@ -5,6 +5,7 @@ import lombok.Getter;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -23,6 +24,15 @@ public class AuthenticatedUser implements UserDetails {
     private final String username;
     private final String password;
     private final boolean enabled;
+
+    /**
+     * Sessions opened before this instant are no longer honoured.
+     *
+     * <p>Carried on the principal so the authentication filter can check it without
+     * a second lookup — it has already loaded the account to get everything else.
+     */
+    private final LocalDateTime tokensValidFrom;
+
     private final Collection<? extends org.springframework.security.core.GrantedAuthority> authorities;
 
     public AuthenticatedUser(User user) {
@@ -33,6 +43,7 @@ public class AuthenticatedUser implements UserDetails {
         // An account awaiting email verification is stored as inactive, which makes
         // Spring Security refuse the login rather than each endpoint having to check.
         this.enabled = user.isActive();
+        this.tokensValidFrom = user.getTokensValidFrom();
         this.authorities = List.of(
                 new SimpleGrantedAuthority("ROLE_" + user.getRole().toUpperCase()));
     }
