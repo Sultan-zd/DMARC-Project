@@ -11,7 +11,7 @@ Built for [Teknologiia](https://www.teknologiia.com).
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-compose-2496ED?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-292%20passing-success)
+![Tests](https://img.shields.io/badge/tests-277%20passing-success)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 ---
@@ -27,12 +27,6 @@ DKIM is the one control DNS cannot be asked about directly: selectors are not
 listable, so a key is only found by guessing its name. When none of the guesses
 answers, the result says **could not determine** rather than "no key", nothing is
 deducted, and the names tried are shown — you can also just name your selector.
-
-**Check how mail travels.** MTA-STS, TLS-RPT and DANE say whether the domain
-*requires* encryption in transit; connecting to each MX on port 25 says what its
-certificate and protocol versions actually are, including whether TLS 1.0 or 1.1 is
-still accepted. Graded separately from the /100, because a fifth control folded into
-a score built from four would move every grade without anything changing.
 
 **Collect the reports.** Mailbox providers send daily XML reports to whatever
 address a DMARC record names in `rua=`. Each organization points the dashboard at
@@ -192,7 +186,6 @@ Everything is an environment variable, with defaults suited to local work.
 | `PUBLIC_URL` | The address emailed links point at |
 | `MAIL_HOST` · `MAIL_PORT` · `MAIL_USERNAME` · `MAIL_PASSWORD` · `MAIL_FROM` | Outgoing mail |
 | `PASSWORD_RESET_TTL_MINUTES` | How long a reset link lasts. 60 by default |
-| `APP_TRANSPORT_PROBE_ENABLED` | `false` to skip connecting to MX hosts. Outbound port 25 is blocked by most providers |
 | `BACKUP_DIR` · `BACKUP_KEEP` · `BACKUP_INTERVAL_HOURS` | Where dumps go, how many to keep, how often. Empty ⇒ no backups |
 | `PLATFORM_OPERATORS` | Usernames that also operate the service |
 | `APP_CORS_ORIGINS` | Extra allowed origins; the application's own is always allowed |
@@ -229,7 +222,7 @@ Everything is an environment variable, with defaults suited to local work.
 cd backend && ./mvnw test
 ```
 
-292 tests, run against an in-memory database that the build forces on every one of
+277 tests, run against an in-memory database that the build forces on every one of
 them — a suite able to reach a real database is a suite able to destroy it.
 
 The ones worth knowing about: tenant isolation across reports, analyses and

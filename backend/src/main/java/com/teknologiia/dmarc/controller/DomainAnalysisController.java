@@ -1,12 +1,10 @@
 package com.teknologiia.dmarc.controller;
 
 import com.teknologiia.dmarc.dto.analysis.DomainAnalysisRequest;
-import com.teknologiia.dmarc.dto.analysis.TransportSecurityResult;
 import com.teknologiia.dmarc.dto.analysis.DomainAnalysisResponse;
 import com.teknologiia.dmarc.dto.analysis.ScoringModelResponse;
 import com.teknologiia.dmarc.dto.report.PaginatedResponse;
 import com.teknologiia.dmarc.service.DomainAnalysisService;
-import com.teknologiia.dmarc.service.TransportSecurityService;
 import com.teknologiia.dmarc.service.ScoringModel;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +20,6 @@ public class DomainAnalysisController {
 
     private final DomainAnalysisService domainAnalysisService;
     private final OrganizationRepository organizationRepository;
-    private final TransportSecurityService transportSecurityService;
 
     @PostMapping("/domain")
     public DomainAnalysisResponse analyzeDomain(
@@ -34,21 +31,6 @@ public class DomainAnalysisController {
                 request.domain(), caller.getUsername(),
                 organizationRepository.getReferenceById(caller.getOrganizationId()),
                 true, request.dkimSelector());
-    }
-
-    /**
-     * Whether mail to this domain travels encrypted.
-     *
-     * <p>Separate from the analysis above, and called separately by the page,
-     * because it is slower by a different order: the declared half is DNS, but
-     * reaching each MX server on port 25 and asking it four questions is seconds
-     * rather than milliseconds. Folding it in would make every analysis wait for it.
-     */
-    @PostMapping("/transport")
-    public TransportSecurityResult transportSecurity(
-            @Valid @RequestBody DomainAnalysisRequest request,
-            @AuthenticationPrincipal AuthenticatedUser caller) {
-        return transportSecurityService.check(request.domain());
     }
 
     @GetMapping("/history")

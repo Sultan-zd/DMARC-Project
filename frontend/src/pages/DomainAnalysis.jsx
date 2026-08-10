@@ -6,7 +6,6 @@ import SkeletonLoader from '../components/ui/SkeletonLoader';
 import AnalysisPosture from '../components/analysis/AnalysisPosture';
 import AnalysisHistory from '../components/analysis/AnalysisHistory';
 import ScoringModelPanel from '../components/analysis/ScoringModelPanel';
-import TransportSecurity from '../components/analysis/TransportSecurity';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useDomain } from '../context/DomainContext';
@@ -265,8 +264,6 @@ const DomainAnalysis = () => {
                 are left out of both sides.
               </p>
             </div>
-
-            <TransportSecurity domain={results.domain} />
 
             <div className="records-section">
               {results.records?.map((record, index) => (
