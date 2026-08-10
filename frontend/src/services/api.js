@@ -533,6 +533,19 @@ export async function analyzeDomain(token, domain, dkimSelector) {
   });
 }
 
+/**
+ * Whether mail to this domain travels encrypted.
+ *
+ * Separate from analyzeDomain because it is slower by a different order: reaching
+ * each MX server on port 25 takes seconds, and folding it in would make every
+ * analysis wait for it.
+ */
+export async function checkTransportSecurity(token, domain) {
+  return request('/analysis/transport', {
+    token, method: 'POST', body: JSON.stringify({ domain }),
+  });
+}
+
 export async function getAnalysisHistory(token, params = {}) {
   return request(`/analysis/history${buildQueryString(params)}`, { token });
 }
