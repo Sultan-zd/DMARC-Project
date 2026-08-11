@@ -245,6 +245,40 @@
   gap: 0.25rem;
 }
 
+/* One row per mail server, each field labelled. An MX answer is a list of pairs,
+   and reading it as a run-on line loses which number belongs to which host. */
+.dns-object-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.dns-object-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.3rem 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.dns-object-field {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--text-primary);
+}
+
+.dns-object-label {
+  font-family: inherit;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.dns-empty { color: var(--text-muted); font-style: italic; }
+
 .dns-selector-list code {
   padding: 0.05rem 0.35rem;
   background: var(--bg-secondary);

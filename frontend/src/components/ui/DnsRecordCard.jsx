@@ -48,15 +48,50 @@ const DnsRecordCard = ({ type, status, rawRecord, parsed, summary }) => {
   };
 
   const renderValue = (key, value) => {
-    // The names themselves, not a count. "Checked 12 selectors" invites the reader
-    // to conclude there is no key; the list makes it obvious theirs may simply not
-    // be on it.
+    // Two shapes arrive here, and conflating them crashed the page.
+    //
+    // DKIM sends an array of strings — the selector names tried. MX sends an array
+    // of objects, one per mail server: { priority, target }. An earlier version of
+    // this branch rendered every element directly, which React refuses to do for an
+    // object, so opening the MX card threw and the error boundary replaced the whole
+    // page with "Something went wrong".
     if (Array.isArray(value)) {
+      if (value.length === 0) {
+        return <span className="dns-empty">none</span>;
+      }
+
+      if (typeof value[0] === 'object' && value[0] !== null) {
+        return (
+          <span className="dns-object-list">
+            {value.map((item, index) => (
+              <span className="dns-object-row" key={item.target ?? item.host ?? index}>
+                {Object.entries(item).map(([field, fieldValue]) => (
+                  <span className="dns-object-field" key={field}>
+                    <span className="dns-object-label">{formatKey(field)}</span>
+                    <span>{String(fieldValue)}</span>
+                  </span>
+                ))}
+              </span>
+            ))}
+          </span>
+        );
+      }
+
+      // The names themselves, not a count. "Checked 41 selectors" invites the
+      // reader to conclude there is no key; the list makes it obvious theirs may
+      // simply not be on it.
       return (
         <span className="dns-selector-list">
-          {value.map((item) => <code key={item}>{item}</code>)}
+          {value.map((item) => <code key={String(item)}>{String(item)}</code>)}
         </span>
       );
+    }
+
+    // Anything else that is an object. Nothing sends one today, and printing
+    // [object Object] is a poor outcome but not a crash — which is the standard
+    // this whole branch failed to meet.
+    if (value !== null && typeof value === 'object') {
+      return <code>{JSON.stringify(value)}</code>;
     }
     if (key === 'keySizeBits') {
       return `${value} bits`;
