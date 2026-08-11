@@ -69,7 +69,7 @@ public class AdminController {
             try (InputStream content = file.getInputStream()) {
                 result = result.merge(ingestionService.ingest(organization, file.getOriginalFilename(), content));
             } catch (IOException e) {
-                result = result.merge(new IngestionResult(1, 0, 0, 0,
+                result = result.merge(new IngestionResult(1, 0, 0, 0, 0,
                         List.of(file.getOriginalFilename() + ": upload could not be read")));
             }
         }

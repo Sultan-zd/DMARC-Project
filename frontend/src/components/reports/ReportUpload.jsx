@@ -5,8 +5,16 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import './ReportUpload.css';
 
-const ACCEPTED = '.xml,.gz,.zip';
-const ACCEPTED_PATTERN = /\.(xml|gz|gzip|zip)$/i;
+/**
+ * A hint for the file picker, not a rule.
+ *
+ * The browser uses this to decide which files to highlight; it does not stop
+ * anyone choosing another, and nothing here rejects one. The server identifies
+ * a report from its first bytes, so a file this list does not mention is still
+ * worth sending — refusing it in the browser would only hide a report the
+ * server could have read.
+ */
+const ACCEPTED = '.xml,.gz,.gzip,.zip,application/zip,application/gzip';
 
 const formatSize = (bytes) => {
   if (bytes < 1024) return `${bytes} B`;
@@ -31,22 +39,25 @@ const ReportUpload = ({ onUploaded }) => {
   const [result, setResult] = useState(null);
 
   const addFiles = useCallback((incoming) => {
+    // Nothing is filtered here any more, and that is deliberate.
+    //
+    // This used to drop anything whose name did not end .xml, .gz or .zip, which
+    // rejected the file before it was ever sent — so a report saved out of a
+    // mailbox under a name the provider chose, or a gateway rewrote, looked to the
+    // person uploading it like the application refusing their data. The server
+    // reads the first bytes and knows what a file is regardless of its name, and it
+    // says clearly when something is not a report. Deciding that here, on a
+    // filename, could only be wrong in the direction that loses reports.
     const candidates = Array.from(incoming);
-    const accepted = candidates.filter((file) => ACCEPTED_PATTERN.test(file.name));
-    const rejected = candidates.length - accepted.length;
-
-    if (rejected > 0) {
-      showToast(`${rejected} file(s) ignored — only .xml, .gz and .zip are accepted`, 'warning');
-    }
-    if (accepted.length === 0) return;
+    if (candidates.length === 0) return;
 
     setResult(null);
     setFiles((current) => {
       // Re-dropping the same file should not queue it twice.
       const seen = new Set(current.map((file) => `${file.name}:${file.size}`));
-      return [...current, ...accepted.filter((file) => !seen.has(`${file.name}:${file.size}`))];
+      return [...current, ...candidates.filter((file) => !seen.has(`${file.name}:${file.size}`))];
     });
-  }, [showToast]);
+  }, []);
 
   const handleDrop = (event) => {
     event.preventDefault();

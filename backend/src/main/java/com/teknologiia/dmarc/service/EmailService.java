@@ -71,7 +71,7 @@ public class EmailService {
     public IngestionResult fetchAndProcessEmails(Long organizationId) {
         var configured = mailboxSettings.forOrganization(organizationId);
         if (configured.isEmpty()) {
-            return new IngestionResult(0, 0, 0, 0, List.of(
+            return new IngestionResult(0, 0, 0, 0, 0, List.of(
                     "No mailbox is configured for this organization. Add one under "
                             + "Administration, or upload report files directly."));
         }
@@ -105,19 +105,43 @@ public class EmailService {
             for (int i = messages.length - 1; i >= messages.length - considered; i--) {
                 result = result.merge(processMessage(organization, messages[i]));
             }
-            mailboxSettings.recordRun(organizationId, true,
-                    result.reportsStored() + " report(s) imported, "
-                            + result.duplicatesSkipped() + " already known");
+            mailboxSettings.recordRun(organizationId, true, summarise(result));
             return result;
 
         } catch (Exception e) {
             log.error("IMAP ingestion failed for organization {}", organizationId, e);
             mailboxSettings.recordRun(organizationId, false, e.getMessage());
-            return new IngestionResult(0, 0, 0, 0,
+            return new IngestionResult(0, 0, 0, 0, 0,
                     List.of("Could not read the mailbox: " + e.getMessage()));
         } finally {
             closeQuietly(inbox, store);
         }
+    }
+
+    /**
+     * What the run did, in one line, for the card on the Administration page.
+     *
+     * <p>Says what it could not read as well as what it stored. A run that reports
+     * only its successes is one where "we never got that report" has no answer —
+     * and an attachment nobody can account for is the single most useful thing to
+     * know when a customer says a report is missing.
+     */
+    static String summarise(IngestionResult result) {
+        StringBuilder summary = new StringBuilder()
+                .append(result.reportsStored()).append(" report(s) imported");
+
+        if (result.duplicatesSkipped() > 0) {
+            summary.append(", ").append(result.duplicatesSkipped()).append(" already known");
+        }
+        if (result.unrecognised() > 0) {
+            summary.append(", ").append(result.unrecognised())
+                    .append(" attachment(s) were not reports");
+        }
+        if (result.hasErrors()) {
+            summary.append(", ").append(result.errors().size()).append(" could not be read: ")
+                    .append(result.errors().get(0));
+        }
+        return summary.toString();
     }
 
     /**
@@ -143,6 +167,14 @@ public class EmailService {
 
         Properties properties = new Properties();
         String protocol = useSsl ? "imaps" : "imap";
+
+        // Filenames arrive RFC 2047 encoded when they carry anything but plain
+        // ASCII, and jakarta.mail hands those back undecoded — or null — unless
+        // asked. A report whose name did not survive that used to be skipped
+        // entirely; it is now read regardless, but a readable name still makes the
+        // difference between a useful error message and "(unnamed attachment)".
+        properties.put("mail.mime.decodefilename", "true");
+        properties.put("mail.mime.decodetext", "true");
 
         properties.put("mail.store.protocol", protocol);
         properties.put("mail." + protocol + ".host", host);
@@ -170,13 +202,35 @@ public class EmailService {
             }
         } catch (Exception e) {
             log.warn("Skipping unreadable message: {}", e.getMessage());
-            result = result.merge(new IngestionResult(0, 0, 0, 0,
+            result = result.merge(new IngestionResult(0, 0, 0, 0, 0,
                     List.of("A message could not be read: " + e.getMessage())));
         }
         return result;
     }
 
-    /** Walks the MIME tree and returns the parts that look like DMARC report attachments. */
+    /**
+     * Walks the MIME tree and returns every part that might carry a report.
+     *
+     * <p>Deliberately generous, and that is the whole point of it. This used to keep
+     * only parts whose filename ended {@code .xml}, {@code .gz} or {@code .zip},
+     * which quietly dropped:
+     *
+     * <ul>
+     *   <li>attachments with no filename at all — a {@code Content-Disposition}
+     *       without a {@code filename} parameter is legal, and some providers send
+     *       one;
+     *   <li>filenames the mail library hands back as null because they were encoded
+     *       in a way it will not decode;
+     *   <li>anything named without an extension, or with one nobody thought of.
+     * </ul>
+     *
+     * <p>In every one of those cases the report arrived in the mailbox, never
+     * appeared in the application, and left nothing behind saying why. So the filter
+     * moved: everything that is not the human-readable body of the message is read,
+     * and {@link ReportFormat} decides what it is from its first bytes. Reading a
+     * signature image costs a few kilobytes; missing a report costs a customer their
+     * data.
+     */
     private List<Part> collectAttachments(Part part) throws Exception {
         List<Part> attachments = new ArrayList<>();
 
@@ -187,12 +241,13 @@ public class EmailService {
             return attachments;
         }
 
-        String filename = part.getFileName();
-        if (filename != null) {
-            String lower = filename.toLowerCase(Locale.ROOT);
-            if (lower.endsWith(".xml") || lower.endsWith(".gz") || lower.endsWith(".zip")) {
-                attachments.add(part);
-            }
+        // A part with a filename is an attachment whatever its type. One without is
+        // still worth reading unless it is plainly the message body.
+        boolean named = part.getFileName() != null && !part.getFileName().isBlank();
+        boolean attached = Part.ATTACHMENT.equalsIgnoreCase(part.getDisposition());
+
+        if (named || attached || ReportFormat.mayBeReport(part.getContentType())) {
+            attachments.add(part);
         }
         return attachments;
     }

@@ -11,7 +11,7 @@ Built for [Teknologiia](https://www.teknologiia.com).
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-compose-2496ED?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-277%20passing-success)
+![Tests](https://img.shields.io/badge/tests-295%20passing-success)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 ---
@@ -31,6 +31,12 @@ deducted, and the names tried are shown — you can also just name your selector
 **Collect the reports.** Mailbox providers send daily XML reports to whatever
 address a DMARC record names in `rua=`. Each organization points the dashboard at
 its own mailbox and reports are collected automatically, or uploaded by hand.
+
+Nobody sends a bare XML: Google zips, Microsoft gzips, and both pick filenames a
+gateway may rewrite. The container is identified from the file's first bytes rather
+than its name, so a `.zip` called anything at all — or nothing at all — is still
+read. Anything that turns out not to be a report is counted and reported, never
+silently dropped.
 
 **See what was actually sent.** The dashboard aggregates those reports: volume,
 authentication pass rates, which sources send as your domains, and which of them
@@ -222,7 +228,7 @@ Everything is an environment variable, with defaults suited to local work.
 cd backend && ./mvnw test
 ```
 
-277 tests, run against an in-memory database that the build forces on every one of
+295 tests, run against an in-memory database that the build forces on every one of
 them — a suite able to reach a real database is a suite able to destroy it.
 
 The ones worth knowing about: tenant isolation across reports, analyses and
