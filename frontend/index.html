@@ -4,18 +4,131 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/brand/site-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DMARC Dashboard | Teknologiia</title>
-    <meta name="description" content="Enterprise DMARC monitoring, reporting, and email security analysis dashboard. Analyze SPF, DKIM, DMARC, MX, and BIMI configurations." />
+
+    <!--
+      The title is what a search result is actually clicked on, so it leads with
+      the words people type rather than the product name. Someone searching
+      "dmarc checker" is looking for a tool; "DMARC Dashboard | Teknologiia"
+      told them nothing about what the page does.
+    -->
+    <title>DMARC Checker — Free SPF, DKIM &amp; DMARC Record Lookup | Teknologiia</title>
+    <meta name="description" content="Check any domain's DMARC, SPF, DKIM, MX and BIMI records in seconds — free, no account needed. Then monitor the aggregate reports mailbox providers send back." />
     <meta name="theme-color" content="#27292F" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#16181C" media="(prefers-color-scheme: dark)" />
     <meta name="author" content="Teknologiia" />
-    <meta name="robots" content="noindex, nofollow" />
 
-    <!-- Open Graph / Social -->
+    <!--
+      This used to read `noindex, nofollow`, which is a direct instruction to
+      every search engine to leave the site out of its index entirely. No amount
+      of other work matters while that line is present — it is the whole reason
+      the site could not be found.
+
+      `max-image-preview:large` is what lets Google show the share image beside
+      the result instead of a thumbnail, and `max-snippet:-1` lifts the cap on
+      how much of the description it may quote.
+    -->
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+    <link rel="canonical" href="https://dmarc.teknosoc.com/" />
+
+    <!--
+      Open Graph / Social.
+
+      Crawlers for LinkedIn, WhatsApp, Slack, Discord and iMessage do not run
+      JavaScript at all — they read this markup and nothing else. Whatever is
+      here is the entire link preview, which is why the image is an absolute URL:
+      a relative path resolves against the crawler, not against this site.
+    -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="DMARC Dashboard | Teknologiia" />
-    <meta property="og:description" content="Enterprise DMARC monitoring, reporting, and email security analysis dashboard." />
+    <meta property="og:url" content="https://dmarc.teknosoc.com/" />
+    <meta property="og:title" content="DMARC Checker — see who can send email as your domain" />
+    <meta property="og:description" content="Check any domain's DMARC, SPF, DKIM, MX and BIMI records in seconds — free, no account needed." />
     <meta property="og:site_name" content="Teknologiia Security" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:image" content="https://dmarc.teknosoc.com/brand/og-cover.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="DMARC Checker by Teknologiia — analyse SPF, DKIM, DMARC, MX and BIMI." />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="DMARC Checker — see who can send email as your domain" />
+    <meta name="twitter:description" content="Check any domain's DMARC, SPF, DKIM, MX and BIMI records in seconds — free, no account needed." />
+    <meta name="twitter:image" content="https://dmarc.teknosoc.com/brand/og-cover.png" />
+
+    <!--
+      Structured data. This is what lets a search engine describe the page as a
+      tool rather than as an unspecified web page, and what makes it eligible
+      for the richer result formats. `offers` at price 0 is the machine-readable
+      way of saying the domain check is free, which is the one fact most likely
+      to decide the click.
+    -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "@id": "https://dmarc.teknosoc.com/#app",
+          "name": "DMARC Checker by Teknologiia",
+          "url": "https://dmarc.teknosoc.com/",
+          "applicationCategory": "SecurityApplication",
+          "operatingSystem": "Any",
+          "browserRequirements": "Requires JavaScript",
+          "description": "Analyse a domain's DMARC, SPF, DKIM, MX and BIMI records and grade the result out of 100, then collect and read the aggregate reports mailbox providers send back.",
+          "featureList": [
+            "Free DMARC, SPF, DKIM, MX and BIMI record lookup",
+            "Domain security grade out of 100 with a published scoring model",
+            "Aggregate report collection from an IMAP mailbox",
+            "Compressed report handling (zip and gzip)",
+            "Alerts on volume spikes and authentication failures"
+          ],
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "description": "Domain analysis is free and requires no account."
+          },
+          "publisher": { "@id": "https://www.teknologiia.com/#org" }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://www.teknologiia.com/#org",
+          "name": "Teknologiia",
+          "url": "https://www.teknologiia.com",
+          "logo": "https://dmarc.teknosoc.com/brand/logo-teknologiia.png"
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://dmarc.teknosoc.com/#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is DMARC?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "DMARC is a DNS record that tells receiving mail servers what to do with messages that claim to come from your domain but fail SPF and DKIM authentication — and asks them to report back who tried."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is the domain check free?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. Analysing a domain needs no account and no email address. Only public DNS records are read, so it works on domains you do not own and nothing is sent to the domain itself."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Why does a DKIM result sometimes say it could not be determined?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "DKIM selectors cannot be listed from DNS, so a key is only found by guessing its name. When none of the tried names answers, the result says it could not be determined rather than claiming there is no key, and nothing is deducted from the score."
+              }
+            }
+          ]
+        }
+      ]
+    }
+    </script>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -64,6 +64,12 @@ public class SecurityConfig {
                 // are what shows the sign-in form.
                 .requestMatchers("/", "/index.html", "/favicon.ico", "/assets/**",
                         "/brand/**", "/*.png", "/*.svg", "/*.webmanifest").permitAll()
+                // What search engines fetch before anything else. Neither matches a
+                // pattern above, so without this line both answer 403 — and a crawler
+                // refused robots.txt is entitled to assume the whole site is closed
+                // to it. The one file whose job is to say "you may index this" cannot
+                // itself require a session.
+                .requestMatchers("/robots.txt", "/sitemap.xml").permitAll()
                 // Client-side routes: the SPA fallback answers these with the shell,
                 // and what the shell then shows is decided by the token it holds.
                 //

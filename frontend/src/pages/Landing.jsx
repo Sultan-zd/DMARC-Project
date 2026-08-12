@@ -20,7 +20,13 @@ import './Landing.css';
  * belong here only once they are real.
  */
 const Landing = () => {
-  usePageTitle('DMARC monitoring and domain protection');
+  // Kept identical to the <title> in index.html. This is the page search engines
+  // rank, and letting React replace a title written for a search result with one
+  // assembled from the product name would undo that on render.
+  usePageTitle(
+    'DMARC Checker — Free SPF, DKIM & DMARC Record Lookup | Teknologiia',
+    { absolute: true },
+  );
   const navigate = useNavigate();
   const [domain, setDomain] = useState('');
   const [submitting, setSubmitting] = useState(false);

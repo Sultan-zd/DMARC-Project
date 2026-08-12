@@ -1,0 +1,43 @@
+# https://dmarc.teknosoc.com/robots.txt
+#
+# What search engines may explore. Everything not disallowed below is open —
+# the landing page is the one that should rank, and it is the one that explains
+# what DMARC is and offers the free check.
+
+User-agent: *
+
+# Signed-in application. These routes answer with the same empty shell to a
+# crawler as to anyone without a session, so indexing them would put a page
+# reading "sign in" into the results under the name of a real feature.
+Disallow: /dashboard
+Disallow: /reports
+Disallow: /alerts
+Disallow: /analysis
+Disallow: /admin
+Disallow: /settings
+Disallow: /platform
+
+# Links that carry a single-use token. These must never be fetched by a crawler:
+# following one spends it, and the person it was emailed to finds it already used.
+Disallow: /verify
+Disallow: /invitation
+Disallow: /reset-password
+Disallow: /change-password
+Disallow: /forgot-password
+
+# The API answers JSON, which has nothing to offer a search result.
+Disallow: /api/
+
+# Per-domain scan results.
+#
+# There is one of these for every domain name that exists, which is an unbounded
+# space for a crawler to wander into, and each page is generated on request
+# rather than written — exactly the shape a search engine treats as thin content
+# and can penalise the whole site for. The landing page is what should rank.
+#
+# If you later decide those result pages are worth indexing — it is how MxToolbox
+# gets much of its traffic — remove this line, but publish them in the sitemap
+# instead so crawling stays bounded to domains that were actually analysed.
+Disallow: /scan/
+
+Sitemap: https://dmarc.teknosoc.com/sitemap.xml

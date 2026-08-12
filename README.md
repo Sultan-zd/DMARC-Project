@@ -179,6 +179,41 @@ Then point the proxy at `APP_PORT` (7999 by default) and terminate TLS there.
 > machine — it looks correct and silently does nothing. The Platform page reports it
 > while it is still wrong.
 
+### Being found
+
+The landing page is public and meant to rank for the things it does — checking a
+domain's DMARC, SPF and DKIM. What ships in the repository:
+
+| | |
+|---|---|
+| `robots.txt` | Opens the public pages, closes the signed-in ones, and keeps crawlers away from single-use token links |
+| `sitemap.xml` | The pages worth landing on, nothing that redirects to a sign-in form |
+| Open Graph + `og-cover.png` | The link preview in LinkedIn, Slack, WhatsApp and iMessage — none of those crawlers run JavaScript, so the markup in `index.html` *is* the preview |
+| JSON-LD | Describes the page as a security tool rather than an unspecified page, and states that the check is free |
+
+Two of those addresses are the first things a crawler asks for, and both sit
+outside every other permit rule, so they are named explicitly in `SecurityConfig`.
+A crawler refused `robots.txt` is entitled to treat the whole site as closed.
+
+Publishing is not indexing. Once deployed, the site has to be declared once:
+
+1. Add the property at [Google Search Console](https://search.google.com/search-console),
+   verifying by DNS TXT — the same place the DMARC record lives.
+2. Submit `https://dmarc.teknosoc.com/sitemap.xml`.
+3. Request indexing for the landing page rather than waiting to be discovered.
+4. Check the preview with the [Facebook sharing debugger](https://developers.facebook.com/tools/debug/)
+   and [LinkedIn's post inspector](https://www.linkedin.com/post-inspector/), which
+   also clears their caches — both hold a preview for weeks otherwise.
+
+> Per-domain results at `/scan/…` are **disallowed** on purpose: there is one for
+> every domain that exists, which is unbounded crawl space and thin content.
+> `robots.txt` explains what to change if you decide they are worth indexing.
+
+`PUBLIC_URL` does not drive any of this. The canonical link, the Open Graph URLs
+and the sitemap are absolute and written for `dmarc.teknosoc.com` — deploying to a
+different hostname means editing `frontend/index.html` and
+`frontend/public/sitemap.xml`, or the tags will point at somewhere else.
+
 ## Configuration
 
 Everything is an environment variable, with defaults suited to local work.

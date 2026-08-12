@@ -54,6 +54,22 @@ class SpaRouteTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = { "/robots.txt", "/sitemap.xml" })
+    @DisplayName("a search engine is never refused the files that tell it what to index")
+    void crawlerFilesAreServed(String route) throws Exception {
+        // These are the first two addresses a crawler asks for, and neither matches
+        // any other permit rule — they fell through to "authenticated" and answered
+        // 403. A crawler refused robots.txt is entitled to treat the whole site as
+        // closed to it, so this is the failure that silently costs every search
+        // result while the pages themselves look perfectly fine to a person.
+        int status = mockMvc.perform(get(route)).andReturn().getResponse().getStatus();
+
+        assertThat(status)
+                .as("%s must be readable without a session or the site cannot be indexed", route)
+                .isNotIn(401, 403);
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {
             "/api/platform/overview",
             "/api/platform/database/tables",
