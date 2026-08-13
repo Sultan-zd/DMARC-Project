@@ -38,6 +38,14 @@ than its name, so a `.zip` called anything at all — or nothing at all — is s
 read. Anything that turns out not to be a report is counted and reported, never
 silently dropped.
 
+**Two ways into a mailbox, because the providers no longer agree.** Google still
+accepts an app password over IMAP. Microsoft removed Basic authentication from
+Exchange Online, so no password — app password included — opens an IMAP session
+against a Microsoft 365 mailbox; those are read through **Microsoft Graph** as a
+registered application instead, over ordinary HTTPS with no legacy mail port
+involved. The provider is chosen when the mailbox is configured, and everything
+after the bytes arrive is shared between the two.
+
 **See what was actually sent.** The dashboard aggregates those reports: volume,
 authentication pass rates, which sources send as your domains, and which of them
 fail.

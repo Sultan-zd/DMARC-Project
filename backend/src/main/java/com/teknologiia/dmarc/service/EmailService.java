@@ -1,6 +1,7 @@
 package com.teknologiia.dmarc.service;
 
 import com.teknologiia.dmarc.dto.ingest.IngestionResult;
+import com.teknologiia.dmarc.model.MailboxKind;
 import com.teknologiia.dmarc.model.MailboxSettings;
 import com.teknologiia.dmarc.model.Organization;
 import com.teknologiia.dmarc.repository.OrganizationRepository;
@@ -64,6 +65,7 @@ public class EmailService {
     private final ReportIngestionService ingestionService;
     private final OrganizationRepository organizationRepository;
     private final MailboxSettingsService mailboxSettings;
+    private final GraphMailReader graphMailReader;
 
     /**
      * @param organizationId tenant that will own everything this run imports
@@ -76,6 +78,13 @@ public class EmailService {
                             + "Administration, or upload report files directly."));
         }
         MailboxSettings mailbox = configured.get();
+
+        // Microsoft 365 cannot be reached over IMAP at all — Basic authentication
+        // was removed from Exchange Online — so those mailboxes take the Graph path
+        // instead. Everything after the bytes are in hand is shared.
+        if (MailboxKind.orDefault(mailbox.getKind()) == MailboxKind.MICROSOFT_GRAPH) {
+            return collectOverGraph(organizationId, mailbox);
+        }
 
         Store store = null;
         Folder inbox = null;
@@ -116,6 +125,24 @@ public class EmailService {
         } finally {
             closeQuietly(inbox, store);
         }
+    }
+
+    /**
+     * A Microsoft 365 run.
+     *
+     * <p>Recorded as successful when it stored something or raised nothing. A run
+     * that imported five reports and could not read a sixth message is not a failed
+     * run, and colouring it red would train whoever watches the card to ignore the
+     * colour.
+     */
+    private IngestionResult collectOverGraph(Long organizationId, MailboxSettings mailbox) {
+        Organization organization = organizationRepository.getReferenceById(organizationId);
+        IngestionResult result = graphMailReader.collect(
+                organization, mailbox, mailboxSettings.password(mailbox));
+
+        boolean ok = result.reportsStored() > 0 || !result.hasErrors();
+        mailboxSettings.recordRun(organizationId, ok, summarise(result));
+        return result;
     }
 
     /**

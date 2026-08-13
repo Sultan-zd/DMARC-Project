@@ -205,7 +205,8 @@ class AdminOverviewServiceTest {
     @DisplayName("a configured mailbox is reported to its own organization only")
     void configuredMailboxIsScoped(@Autowired MailboxSettingsService mailboxService) {
         mailboxService.save(acme.getId(), new com.teknologiia.dmarc.dto.mailbox.MailboxSettingsRequest(
-                "imap.acme.test", 993, "reports@acme.test", "secret", true, true));
+                com.teknologiia.dmarc.model.MailboxKind.IMAP,
+                "imap.acme.test", 993, "reports@acme.test", "secret", null, null, true, true));
 
         assertThat(service.overview(acme.getId()).mailboxAddress()).isEqualTo("reports@acme.test");
         assertThat(service.overview(acme.getId()).mailboxConfigured()).isTrue();

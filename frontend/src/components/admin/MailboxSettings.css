@@ -174,3 +174,65 @@
   .mailbox-fields { grid-template-columns: 1fr; }
   .mailbox-fields label:nth-child(2) { grid-column: 1 / -1; }
 }
+
+/* ── Provider choice ──────────────────────────────────────────────────
+   Which provider comes first, because the fields below depend on it and
+   the two are not interchangeable: Microsoft 365 cannot be reached over
+   IMAP at all. */
+.provider-choice {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.provider-option {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 14px;
+  text-align: left;
+  background: var(--bg-input);
+  border: 1.5px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+}
+
+.provider-option:hover { border-color: var(--accent-primary); }
+
+.provider-option strong {
+  font-size: .92rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.provider-option span {
+  font-size: .78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.provider-option.is-chosen {
+  border-color: var(--accent-primary);
+  background: var(--accent-bg);
+}
+
+.provider-option.is-chosen strong { color: var(--accent-secondary); }
+
+.mailbox-hint {
+  font-size: .78rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: -4px 0 12px;
+}
+
+/* The note carries a paragraph now, not a sentence, so the icon must not
+   be dragged to the vertical centre of a four-line block. */
+.mailbox-note { align-items: flex-start; }
+.mailbox-note svg { flex-shrink: 0; margin-top: 2px; }
+
+/* Entra ID identifiers are 36-character GUIDs. Side by side they are cut off
+   mid-value, which is exactly where a typo hides. */
+.mailbox-fields.is-single { grid-template-columns: 1fr; }

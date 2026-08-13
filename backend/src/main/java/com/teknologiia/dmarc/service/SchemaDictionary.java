@@ -216,16 +216,30 @@ public final class SchemaDictionary {
             // ── mailbox_settings ──
             Map.entry("mailbox_settings.organization_id", "One mailbox per organization — the unique "
                     + "constraint is here, not merely an index."),
-            Map.entry("mailbox_settings.host", "IMAP server. For Microsoft 365 this is "
-                    + "outlook.office365.com; for Gmail, imap.gmail.com."),
-            Map.entry("mailbox_settings.port", "993 for IMAP over SSL, which is what this should be."),
+            Map.entry("mailbox_settings.kind", "How this mailbox is reached: IMAP, or "
+                    + "MICROSOFT_GRAPH. Microsoft removed Basic authentication from Exchange "
+                    + "Online, so a Microsoft 365 mailbox cannot be opened over IMAP by any "
+                    + "password at all and is read as a registered application instead. Empty on "
+                    + "rows written before Graph support existed; those are all IMAP."),
+            Map.entry("mailbox_settings.host", "IMAP server — imap.gmail.com for Gmail. Reads "
+                    + "graph.microsoft.com for a Graph mailbox, where it is not configurable."),
+            Map.entry("mailbox_settings.port", "993 for IMAP over SSL, which is what this should be. "
+                    + "443 for Graph, which speaks ordinary HTTPS."),
             Map.entry("mailbox_settings.username", "The mailbox the DMARC record's rua= address "
-                    + "delivers to."),
-            Map.entry("mailbox_settings.password_cipher", "AES-GCM encrypted, not hashed — IMAP needs "
-                    + "the password back, so this is the one secret here that can be decrypted. It "
-                    + "is unreadable without SECRETS_KEY, and the application refuses to store one "
-                    + "at all when that key is unset."),
-            Map.entry("mailbox_settings.use_ssl", "Turning this off sends the password in the clear."),
+                    + "delivers to. For Graph it is the full address, which is what identifies the "
+                    + "mailbox in the API call."),
+            Map.entry("mailbox_settings.password_cipher", "The one secret this mailbox needs, "
+                    + "AES-GCM encrypted rather than hashed because it has to be presented again on "
+                    + "every run: an IMAP app password, or the client secret of the Entra ID "
+                    + "registration. Unreadable without SECRETS_KEY, and the application refuses to "
+                    + "store one at all when that key is unset."),
+            Map.entry("mailbox_settings.tenant_id", "Entra ID directory the application registration "
+                    + "lives in. Graph only; empty for IMAP."),
+            Map.entry("mailbox_settings.client_id", "The Entra ID application registration reading "
+                    + "the mailbox. Not a secret — it identifies the application, it does not "
+                    + "authenticate it. Graph only."),
+            Map.entry("mailbox_settings.use_ssl", "Turning this off sends the password in the clear. "
+                    + "Always true for Graph, which has no unencrypted mode."),
             Map.entry("mailbox_settings.polling_enabled", "Whether the scheduled collection includes "
                     + "this mailbox. Off means reports only arrive when someone presses collect."),
             Map.entry("mailbox_settings.last_run_at", "When collection last attempted this mailbox."),

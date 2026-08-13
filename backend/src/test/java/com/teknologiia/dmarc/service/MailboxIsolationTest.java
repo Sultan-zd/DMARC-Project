@@ -1,6 +1,7 @@
 package com.teknologiia.dmarc.service;
 
 import com.teknologiia.dmarc.dto.mailbox.MailboxSettingsRequest;
+import com.teknologiia.dmarc.model.MailboxKind;
 import com.teknologiia.dmarc.model.Organization;
 import com.teknologiia.dmarc.repository.MailboxSettingsRepository;
 import com.teknologiia.dmarc.repository.OrganizationRepository;
@@ -49,7 +50,8 @@ class MailboxIsolationTest {
     }
 
     private MailboxSettingsRequest request(String host, String user, String password) {
-        return new MailboxSettingsRequest(host, 993, user, password, true, true);
+        return new MailboxSettingsRequest(MailboxKind.IMAP, host, 993, user, password,
+                null, null, true, true);
     }
 
     @Test
@@ -122,8 +124,8 @@ class MailboxIsolationTest {
     void pollingIsOptional() {
         service.save(acme.getId(), request("imap.acme.test", "reports@acme.test", "acme-secret"));
         service.save(rival.getId(),
-                new MailboxSettingsRequest("imap.rival.test", 993, "reports@rival.test",
-                        "rival-secret", true, false));
+                new MailboxSettingsRequest(MailboxKind.IMAP, "imap.rival.test", 993,
+                        "reports@rival.test", "rival-secret", null, null, true, false));
 
         assertThat(repository.findByPollingEnabledTrue())
                 .extracting(m -> m.getOrganization().getId())
