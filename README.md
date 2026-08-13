@@ -11,7 +11,7 @@ Built for [Teknologiia](https://www.teknologiia.com).
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-compose-2496ED?logo=docker&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-295%20passing-success)
+![Tests](https://img.shields.io/badge/tests-297%20passing-success)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 ---
@@ -263,7 +263,7 @@ Everything is an environment variable, with defaults suited to local work.
 cd backend && ./mvnw test
 ```
 
-295 tests, run against an in-memory database that the build forces on every one of
+297 tests, run against an in-memory database that the build forces on every one of
 them — a suite able to reach a real database is a suite able to destroy it.
 
 The ones worth knowing about: tenant isolation across reports, analyses and
