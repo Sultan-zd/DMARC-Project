@@ -61,3 +61,10 @@ backend/config/
 # It is generated from frontend/, so tracking it would commit the same code twice
 # and guarantee the two drift apart.
 backend/src/main/resources/static/
+
+# The end-of-year report: its sources, its diagrams and its screenshots.
+# Deliberately kept off the repository — it is a personal academic document
+# rather than part of the product, and its twelve megabytes of screenshots
+# would outweigh the code they illustrate. The *.pdf rule above already
+# excludes the rendered report; this excludes what produces it.
+rapport/
